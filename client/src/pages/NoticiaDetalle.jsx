@@ -7,7 +7,7 @@ const NoticiaDetalle = () => {
     const [noticia, setNoticia] = useState(null);
 
     useEffect(() => {
-        axios.get(`https://localhost:7235/api/Noticias/${id}`)
+        axios.get(`https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Noticias/${id}`)
             .then((response) => {
                 setNoticia(response.data);
             })
@@ -22,7 +22,7 @@ const NoticiaDetalle = () => {
 
         // Si la imagen viene del servidor (subida), le agregamos el dominio del Backend
         if (ruta.startsWith("/uploads")) {
-            return `https://localhost:7235${ruta}`;
+            return `https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net/${ruta}`;
         }
         return ruta;
     };

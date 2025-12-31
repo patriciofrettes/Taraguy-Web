@@ -9,7 +9,7 @@ const Home = () => {
     useEffect(() => {
         // 1. Cargar la última noticia (OPTIMIZADO)
         // Usamos el endpoint nuevo que solo trae las 3 últimas
-        axios.get('https://localhost:7235/api/Noticias/ultimas')
+        axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Noticias/ultimas')
             .then(res => {
                 if (res.data && res.data.length > 0) {
                     // Como ya vienen ordenadas del backend, tomamos la primera [0]
@@ -20,7 +20,7 @@ const Home = () => {
 
         // 2. Cargar el próximo partido (OPTIMIZADO)
         // Usamos el endpoint nuevo que trae UN solo partido (o nada)
-        axios.get('https://localhost:7235/api/Partidos/proximo')
+        axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Partidos/proximo')
             .then(res => {
                 // Si hay partido (res.data no es null o vacío), lo guardamos
                 if (res.data) {
@@ -33,7 +33,7 @@ const Home = () => {
     // Helper para arreglar rutas de imágenes
     const obtenerImagen = (ruta) => {
         if (!ruta) return "/img/default.jpg";
-        if (ruta.startsWith("/uploads")) return `https://localhost:7235${ruta}`;
+        if (ruta.startsWith("/uploads")) return `https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net/${ruta}`;
         return ruta;
     };
 

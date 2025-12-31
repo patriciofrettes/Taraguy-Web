@@ -9,7 +9,7 @@ const CartSidebar = () => {
     // Lógica de MercadoPago (Simplificada para este ejemplo)
     const handleCheckout = async () => {
         try {
-            const response = await axios.post('https://localhost:7235/api/MercadoPago/crear_preferencia', {
+            const response = await axios.post('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/MercadoPago/crear_preferencia', {
                 items: cart,
                 total: totalPrice,
                 datosCliente: { nombre: "Cliente", apellido: "Web", email: "test@test.com" }
@@ -48,7 +48,7 @@ const CartSidebar = () => {
                         <div className="space-y-6">
                             {cart.map((item, index) => (
                                 <div key={`${item.id}-${item.talle}-${index}`} className="flex gap-4 border-b border-gray-100 pb-4">
-                                    <img src={item.imagenUrl ? `https://localhost:7235${item.imagenUrl}` : '/img/default.jpg'} className="w-16 h-16 object-cover rounded" alt="prod" />
+                                    <img src={item.imagenUrl ? `https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net/${item.imagenUrl}` : '/img/default.jpg'} className="w-16 h-16 object-cover rounded" alt="prod" />
                                     <div className="flex-1">
                                         <h4 className="font-bold text-sm uppercase">{item.nombre}</h4>
                                         {/* Mostramos el talle si existe */}

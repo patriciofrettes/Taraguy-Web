@@ -22,7 +22,7 @@ const Partidos = () => {
 
     // 2. DESPUÉS EL USEEFFECT
     useEffect(() => {
-        axios.get('https://localhost:7235/api/Partidos')
+        axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Partidos')
             .then((response) => {
                 setTodosLosPartidos(response.data);
                 // Al cargar, filtramos por defecto Rugby
@@ -81,7 +81,7 @@ const Partidos = () => {
                             {/* VISITANTE */}
                             <div className="flex-1 text-left flex items-center gap-3">
                                 {!partido.esLocal && partido.escudoRivalUrl && (
-                                    <img src={`https://localhost:7235${partido.escudoRivalUrl}`} className="w-8 h-8 object-contain" alt="escudo" />
+                                    <img src={`https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net/${partido.escudoRivalUrl}`} className="w-8 h-8 object-contain" alt="escudo" />
                                 )}
                                 <div>
                                     <span className="font-black text-xl uppercase block">{partido.esLocal ? partido.rival : 'Taraguy'}</span>

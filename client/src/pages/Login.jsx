@@ -15,7 +15,7 @@ const Login = () => {
         try {
             // --- CONEXIÓN REAL AL BACKEND ---
             // Enviamos usuario y contraseña a la API para verificar en SQL
-            const response = await axios.post('https://localhost:7235/api/Auth/login', {
+            const response = await axios.post('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Auth/login', {
                 usuario: usuario,
                 password: password
             });

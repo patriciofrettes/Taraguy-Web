@@ -63,7 +63,7 @@ const PanelTienda = () => {
 
     const cargarProductos = async () => {
         try {
-            const res = await axios.get('https://localhost:7235/api/Productos');
+            const res = await axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Productos');
             setProductos(res.data);
         } catch (error) { console.error(error); }
     };
@@ -119,13 +119,13 @@ const PanelTienda = () => {
                 // Por ahora, usaremos POST también para editar o ajusta tu controller para PUT.
                 // TRUCO SEGURO: Usamos el mismo endpoint POST pero el backend detecta el ID? 
                 // No, lo estándar es PUT. Vamos a intentar PUT.
-                await axios.put(`https://localhost:7235/api/Productos/${editandoId}`, form);
+                await axios.put(`https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Productos/${editandoId}`, form);
                 // ⚠️ OJO: Editar imágenes con PUT requiere lógica especial. 
                 // Si esto da error, te paso una solución rápida.
                 alert('Producto actualizado (Nota: Si cambiaste imagen y no se ve, avísame).');
             } else {
                 // MODO CREACIÓN (POST)
-                await axios.post('https://localhost:7235/api/Productos', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                await axios.post('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Productos', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
                 alert('Producto creado.');
             }
             cargarProductos();
@@ -138,7 +138,7 @@ const PanelTienda = () => {
 
     const borrar = async (id) => {
         if (!confirm("¿Borrar producto?")) return;
-        await axios.delete(`https://localhost:7235/api/Productos/${id}`);
+        await axios.delete(`https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Productos/${id}`);
         cargarProductos();
     };
 
@@ -183,7 +183,7 @@ const PanelTienda = () => {
                     <tbody className="divide-y">
                         {productos.map(p => (
                             <tr key={p.id} className="hover:bg-gray-50">
-                                <td className="p-3"><img src={p.imagenUrl ? `https://localhost:7235${p.imagenUrl}` : '/img/default.png'} className="w-10 h-10 object-cover rounded" /></td>
+                                <td className="p-3"><img src={p.imagenUrl ? `https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net/${p.imagenUrl}` : '/img/default.png'} className="w-10 h-10 object-cover rounded" /></td>
                                 <td className="p-3 font-bold">{p.nombre}</td>
                                 <td className="p-3 text-green-600">${p.precio}</td>
                                 <td className="p-3 text-center"><span className={`px-2 py-1 rounded text-white ${p.stock > 0 ? 'bg-blue-500' : 'bg-red-500'}`}>{p.stock}</span></td>
@@ -208,7 +208,7 @@ const PanelNoticias = () => {
     const [form, setForm] = useState({ titulo: '', copete: '', cuerpo: '', autor: '', imagen: null });
 
     useEffect(() => {
-        axios.get('https://localhost:7235/api/Noticias').then(res => setNoticias(res.data));
+        axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Noticias').then(res => setNoticias(res.data));
     }, []);
 
     // ... lógica simple para crear noticias ...
@@ -256,7 +256,7 @@ const PanelVentas = () => {
 
     useEffect(() => {
         // Asumiendo que existe un endpoint de Ordenes
-        // axios.get('https://localhost:7235/api/Ordenes').then(res => setOrdenes(res.data));
+        // axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Ordenes').then(res => setOrdenes(res.data));
     }, []);
 
     return (

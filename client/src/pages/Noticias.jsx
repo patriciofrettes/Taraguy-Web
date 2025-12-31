@@ -6,7 +6,7 @@ const Noticias = () => {
     const [noticias, setNoticias] = useState([]);
 
     useEffect(() => {
-        axios.get('https://localhost:7235/api/Noticias')
+        axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Noticias')
             .then((response) => {
                 setNoticias(response.data);
             })
@@ -21,7 +21,7 @@ const Noticias = () => {
 
         // Si la ruta empieza con "/uploads", significa que está en el BACKEND
         if (ruta.startsWith("/uploads")) {
-            return `https://localhost:7235${ruta}`;
+            return `https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net/${ruta}`;
         }
 
         // Si no, es una foto local (/img/...) o de internet, la dejamos igual
