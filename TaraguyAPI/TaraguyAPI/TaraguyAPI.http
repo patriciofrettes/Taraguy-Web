@@ -1,0 +1,6 @@
+@TaraguyAPI_HostAddress = http://localhost:5207
+
+GET {{TaraguyAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

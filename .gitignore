@@ -1,0 +1,14 @@
+# Archivos de .NET (Backend)
+bin/
+obj/
+.vs/
+*.user
+
+# Archivos de React (Frontend)
+node_modules/
+dist/
+.env
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
