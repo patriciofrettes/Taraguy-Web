@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-// 1. URL BASE LIMPIA (Sin el error de https doble)
+// URL BASE
 const API_URL = "https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net";
 
 const Admin = () => {
@@ -19,31 +19,23 @@ const Admin = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                     <h1 className="text-3xl font-black uppercase tracking-tight">Panel de Control</h1>
-                    <div className="flex gap-4">
-                        <button onClick={() => window.open('/', '_blank')} className="text-gray-600 font-bold hover:text-black transition">
-                            Ver Web Pública ↗
-                        </button>
-                        <button onClick={handleLogout} className="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700 transition">
-                            Cerrar Sesión
-                        </button>
-                    </div>
+                    <button onClick={handleLogout} className="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700 transition">
+                        Cerrar Sesión
+                    </button>
                 </div>
 
-                {/* MENÚ DE PESTAÑAS */}
                 <div className="flex flex-wrap gap-2 md:gap-4 mb-8 border-b border-gray-300 pb-4">
                     {['tienda', 'noticias', 'partidos', 'ventas'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setTabActiva(tab)}
-                            className={`px-4 py-2 rounded font-bold uppercase text-sm transition ${tabActiva === tab ? 'bg-black text-white shadow-lg' : 'bg-white text-gray-500 hover:bg-gray-200'
-                                }`}
+                            className={`px-4 py-2 rounded font-bold uppercase text-sm transition ${tabActiva === tab ? 'bg-black text-white shadow-lg' : 'bg-white text-gray-500 hover:bg-gray-200'}`}
                         >
                             {tab === 'tienda' ? '👕 Tienda' : tab === 'noticias' ? '📰 Noticias' : tab === 'partidos' ? '🏆 Partidos' : '💰 Ventas'}
                         </button>
                     ))}
                 </div>
 
-                {/* CONTENIDO DINÁMICO */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
                     {tabActiva === 'tienda' && <PanelTienda />}
                     {tabActiva === 'noticias' && <PanelNoticias />}
@@ -55,9 +47,7 @@ const Admin = () => {
     );
 };
 
-/* ====================================================================================
-   SECCIÓN 1: TIENDA (PRODUCTOS)
-   ==================================================================================== */
+/* --- 1. TIENDA --- */
 const PanelTienda = () => {
     const [productos, setProductos] = useState([]);
     const [editandoId, setEditandoId] = useState(null);
@@ -66,12 +56,13 @@ const PanelTienda = () => {
         categoriaProducto: 'Indumentaria', talles: '', visible: true, imagen: null
     });
 
-    useEffect(() => { cargar(); }, []);
-
+    // CORRECCIÓN: Definimos la función ANTES del useEffect
     const cargar = async () => {
         try { const res = await axios.get(`${API_URL}/api/Productos`); setProductos(res.data); }
         catch (e) { console.error(e); }
     };
+
+    useEffect(() => { cargar(); }, []);
 
     const handleChange = (e) => {
         const { name, value, type, checked, files } = e.target;
@@ -104,7 +95,7 @@ const PanelTienda = () => {
         if (editandoId) formData.append('id', editandoId);
 
         try {
-            if (editandoId) await axios.put(`${API_URL}/api/Productos/${editandoId}`, form); // Nota: PUT simple si no cambias foto, o ajustar lógica
+            if (editandoId) await axios.put(`${API_URL}/api/Productos/${editandoId}`, form);
             else await axios.post(`${API_URL}/api/Productos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 
             alert(editandoId ? 'Producto actualizado' : 'Producto creado');
@@ -166,19 +157,18 @@ const PanelTienda = () => {
     );
 };
 
-/* ====================================================================================
-   SECCIÓN 2: NOTICIAS
-   ==================================================================================== */
+/* --- 2. NOTICIAS --- */
 const PanelNoticias = () => {
     const [noticias, setNoticias] = useState([]);
-    const [form, setForm] = useState({ titulo: '', copete: '', cuerpo: '', autor: 'Admin', imagen: null });
+    const [form, setForm] = useState({ titulo: '', copete: '', cuerpo: '', imagen: null });
 
-    useEffect(() => { cargar(); }, []);
-
+    // CORRECCIÓN: Función antes del useEffect
     const cargar = async () => {
-        try { const res = await axios.get(`${API_URL}/api/Noticias`); setProductos(res.data); setNoticias(res.data); }
+        try { const res = await axios.get(`${API_URL}/api/Noticias`); setNoticias(res.data); }
         catch (e) { console.error(e); }
     };
+
+    useEffect(() => { cargar(); }, []);
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
@@ -191,16 +181,16 @@ const PanelNoticias = () => {
         formData.append('titulo', form.titulo);
         formData.append('copete', form.copete);
         formData.append('cuerpo', form.cuerpo);
-        formData.append('autor', form.autor);
+        // Quitamos 'autor' porque tu backend dio error con eso
         if (form.imagen) formData.append('imagen', form.imagen);
 
         try {
             await axios.post(`${API_URL}/api/Noticias`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             alert('Noticia publicada');
-            setForm({ titulo: '', copete: '', cuerpo: '', autor: 'Admin', imagen: null });
+            setForm({ titulo: '', copete: '', cuerpo: '', imagen: null });
             document.getElementById('fileInputNews').value = "";
             cargar();
-        } catch (error) { alert("Error al guardar noticia. (Verifica si el backend soporta imágenes)"); console.error(error); }
+        } catch (error) { alert("Error al guardar noticia."); console.error(error); }
     };
 
     const borrar = async (id) => {
@@ -217,12 +207,10 @@ const PanelNoticias = () => {
                 <input required name="titulo" placeholder="Título de la noticia" value={form.titulo} onChange={handleChange} className="border p-3 rounded font-bold" />
                 <textarea name="copete" placeholder="Copete (Resumen corto)" value={form.copete} onChange={handleChange} className="border p-3 rounded h-20" />
                 <textarea required name="cuerpo" placeholder="Cuerpo de la noticia (Texto completo)" value={form.cuerpo} onChange={handleChange} className="border p-3 rounded h-40" />
-
                 <div>
                     <label className="block text-sm font-bold mb-1">Imagen de Portada</label>
                     <input id="fileInputNews" type="file" name="imagen" onChange={handleChange} className="w-full bg-white p-2 border rounded" />
                 </div>
-
                 <button type="submit" className="bg-black text-white py-3 rounded font-bold uppercase hover:bg-gray-800">Publicar Noticia</button>
             </form>
 
@@ -232,10 +220,7 @@ const PanelNoticias = () => {
                     <div key={n.id} className="flex justify-between items-center bg-white border p-4 rounded shadow-sm">
                         <div className="flex items-center gap-4">
                             {n.imagenUrl && <img src={`${API_URL}${n.imagenUrl}`} className="w-16 h-16 object-cover rounded" />}
-                            <div>
-                                <h4 className="font-bold text-lg">{n.titulo}</h4>
-                                <p className="text-xs text-gray-500">{new Date(n.fechaPublicacion).toLocaleDateString()}</p>
-                            </div>
+                            <h4 className="font-bold text-lg">{n.titulo}</h4>
                         </div>
                         <button onClick={() => borrar(n.id)} className="text-red-500 font-bold text-sm border border-red-200 px-3 py-1 rounded hover:bg-red-50">ELIMINAR</button>
                     </div>
@@ -245,19 +230,18 @@ const PanelNoticias = () => {
     );
 };
 
-/* ====================================================================================
-   SECCIÓN 3: PARTIDOS
-   ==================================================================================== */
+/* --- 3. PARTIDOS --- */
 const PanelPartidos = () => {
     const [partidos, setPartidos] = useState([]);
     const [form, setForm] = useState({ rival: '', fecha: '', lugar: 'Local', resultado: '' });
 
-    useEffect(() => { cargar(); }, []);
-
+    // CORRECCIÓN: Función antes del useEffect
     const cargar = async () => {
         try { const res = await axios.get(`${API_URL}/api/Partidos`); setPartidos(res.data); }
         catch (e) { console.error(e); }
     };
+
+    useEffect(() => { cargar(); }, []);
 
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -297,10 +281,6 @@ const PanelPartidos = () => {
                         <option>Visitante</option>
                     </select>
                 </div>
-                <div>
-                    <label className="text-xs font-bold uppercase">Resultado (Opcional)</label>
-                    <input name="resultado" placeholder="Ej: 20 - 15" value={form.resultado} onChange={handleChange} className="border p-2 rounded w-32" />
-                </div>
                 <button type="submit" className="bg-black text-white px-6 py-2 rounded font-bold uppercase h-[42px]">Guardar</button>
             </form>
 
@@ -311,7 +291,7 @@ const PanelPartidos = () => {
                         <div>
                             <p className="text-xs text-gray-500 font-bold uppercase">{new Date(p.fecha).toLocaleString()}</p>
                             <h4 className="font-black text-xl uppercase">Taraguy vs {p.rival}</h4>
-                            <p className="text-sm">{p.lugar} {p.resultado && `| ${p.resultado}`}</p>
+                            <p className="text-sm">{p.lugar}</p>
                         </div>
                         <button onClick={() => borrar(p.id)} className="text-red-500 font-bold text-xs">X</button>
                     </li>
@@ -321,17 +301,11 @@ const PanelPartidos = () => {
     );
 };
 
-/* ====================================================================================
-   SECCIÓN 4: VENTAS
-   ==================================================================================== */
+/* --- 4. VENTAS --- */
 const PanelVentas = () => {
     const [ordenes, setOrdenes] = useState([]);
-
     useEffect(() => {
-        // Intentamos cargar ordenes, si falla no mostramos error grave
-        axios.get(`${API_URL}/api/Ordenes`)
-            .then(res => setOrdenes(res.data))
-            .catch(e => console.log("Aún no hay sistema de ordenes o falló la conexión"));
+        axios.get(`${API_URL}/api/Ordenes`).then(res => setOrdenes(res.data)).catch(e => console.log("Sin ordenes"));
     }, []);
 
     return (
@@ -340,35 +314,9 @@ const PanelVentas = () => {
             {ordenes.length === 0 ? (
                 <div className="bg-yellow-50 border border-yellow-200 p-6 rounded text-yellow-800 text-center">
                     <p className="font-bold">No hay ventas registradas aún.</p>
-                    <p className="text-sm">Cuando alguien compre en la tienda, aparecerá aquí.</p>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left border">
-                        <thead className="bg-gray-100 uppercase font-bold text-gray-600">
-                            <tr>
-                                <th className="p-3">ID Orden</th>
-                                <th className="p-3">Fecha</th>
-                                <th className="p-3">Cliente</th>
-                                <th className="p-3">Total</th>
-                                <th className="p-3 text-center">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {ordenes.map(o => (
-                                <tr key={o.id} className="hover:bg-gray-50">
-                                    <td className="p-3 font-mono">#{o.id}</td>
-                                    <td className="p-3">{new Date(o.fecha).toLocaleDateString()}</td>
-                                    <td className="p-3 font-bold">{o.nombreCliente || 'Anónimo'}</td>
-                                    <td className="p-3 text-green-600 font-bold">${o.total}</td>
-                                    <td className="p-3 text-center">
-                                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold uppercase">Pagado</span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <p>Listado de ventas...</p>
             )}
         </div>
     );

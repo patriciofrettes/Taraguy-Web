@@ -2,27 +2,26 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
+// URL BASE CORRECTA (Sin errores)
+const API_URL = "https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net";
+
 const Home = () => {
     const [ultimaNoticia, setUltimaNoticia] = useState(null);
     const [proximoPartido, setProximoPartido] = useState(null);
 
     useEffect(() => {
-        // 1. Cargar la última noticia (OPTIMIZADO)
-        // Usamos el endpoint nuevo que solo trae las 3 últimas
-        axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Noticias/ultimas')
+        // 1. Cargar la última noticia
+        axios.get(`${API_URL}/api/Noticias/ultimas`)
             .then(res => {
                 if (res.data && res.data.length > 0) {
-                    // Como ya vienen ordenadas del backend, tomamos la primera [0]
                     setUltimaNoticia(res.data[0]);
                 }
             })
             .catch(err => console.error("Error cargando noticias:", err));
 
-        // 2. Cargar el próximo partido (OPTIMIZADO)
-        // Usamos el endpoint nuevo que trae UN solo partido (o nada)
-        axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Partidos/proximo')
+        // 2. Cargar el próximo partido
+        axios.get(`${API_URL}/api/Partidos/proximo`)
             .then(res => {
-                // Si hay partido (res.data no es null o vacío), lo guardamos
                 if (res.data) {
                     setProximoPartido(res.data);
                 }
@@ -32,8 +31,8 @@ const Home = () => {
 
     // Helper para arreglar rutas de imágenes
     const obtenerImagen = (ruta) => {
-        if (!ruta) return "/img/default.jpg";
-        if (ruta.startsWith("/uploads")) return `https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net/${ruta}`;
+        if (!ruta) return "/img/default_news.png";
+        if (ruta.startsWith("/uploads")) return `${API_URL}${ruta}`;
         return ruta;
     };
 
@@ -64,7 +63,10 @@ const Home = () => {
                             <div className="text-5xl font-black text-gray-200 italic">VS</div>
 
                             <div className="text-center group">
-                                <img src={obtenerImagen(proximoPartido.escudoRivalUrl)} className="w-20 h-20 object-contain mx-auto mb-2 group-hover:scale-110 transition" alt="Rival" onError={(e) => e.target.src = "https://via.placeholder.com/80?text=RIVAL"} />
+                                {/* Si no hay escudo rival, ponemos uno genérico */}
+                                <div className="w-20 h-20 flex items-center justify-center mx-auto mb-2 bg-gray-100 rounded-full font-bold text-gray-400 border-2 border-dashed border-gray-300">
+                                    RIVAL
+                                </div>
                                 <span className="font-black text-xl block uppercase">{proximoPartido.rival}</span>
                             </div>
                         </div>
@@ -94,6 +96,7 @@ const Home = () => {
                                         src={obtenerImagen(ultimaNoticia.imagenUrl)}
                                         alt={ultimaNoticia.titulo}
                                         className="w-full h-80 object-cover group-hover:scale-105 transition duration-500"
+                                        onError={(e) => e.target.src = "https://via.placeholder.com/800x400?text=Noticia"}
                                     />
                                 </div>
                                 <span className="text-gray-500 font-bold uppercase text-xs tracking-widest mb-2 block">
@@ -128,7 +131,6 @@ const Home = () => {
                                     Ir al Shop
                                 </Link>
                             </div>
-                            {/* Imagen decorativa tienda (camiseta) */}
                             <img
                                 src="https://flash-sport.com.ar/wp-content/uploads/2021/03/Camiseta-Rugby-Taraguy-Titular-Frente.jpg"
                                 className="absolute right-[-30px] bottom-[-30px] w-56 rotate-12 group-hover:rotate-0 transition duration-500 drop-shadow-xl"
@@ -139,7 +141,6 @@ const Home = () => {
 
                         {/* BANNER 2: HOCKEY */}
                         <div className="bg-black text-white rounded-2xl p-8 flex flex-col justify-center items-start relative overflow-hidden min-h-[250px] shadow-lg group">
-                            {/* IMAGEN DE FONDO */}
                             <img
                                 src="/img/hockey_banner.jpg"
                                 className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-40 transition transform group-hover:scale-105 duration-700"
