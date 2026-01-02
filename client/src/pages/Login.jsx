@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; // <--- IMPORTANTE: Importamos Axios
+import axios from 'axios';
 
 const Login = () => {
     const [usuario, setUsuario] = useState('');
@@ -14,8 +14,8 @@ const Login = () => {
 
         try {
             // --- CONEXIÓN REAL AL BACKEND ---
-            // Enviamos usuario y contraseña a la API para verificar en SQL
-            const response = await axios.post('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Auth/login', {
+            // CORREGIDO: Una sola vez https:// y una sola barra /
+            const response = await axios.post('https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net/api/Auth/login', {
                 usuario: usuario,
                 password: password
             });
