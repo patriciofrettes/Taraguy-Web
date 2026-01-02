@@ -16,7 +16,7 @@ namespace TaraguyAPI.Controllers
     public class ProductosController : ControllerBase
     {
         private readonly TaraguyDbContext _context;
-        private readonly IWebHostEnvironment _env; // Para guardar fotos
+        private readonly IWebHostEnvironment _env;
 
         public ProductosController(TaraguyDbContext context, IWebHostEnvironment env)
         {
@@ -40,52 +40,75 @@ namespace TaraguyAPI.Controllers
             return producto;
         }
 
-        // POST: api/Productos (CREAR CON FOTO Y TALLES)
+        // POST: api/Productos (CREAR)
         [HttpPost]
         public async Task<ActionResult<Producto>> PostProducto([FromForm] ProductoDto dto)
         {
-            // Validaciones
-            if (string.IsNullOrWhiteSpace(dto.Nombre)) return BadRequest("El nombre es obligatorio.");
-            if (dto.Precio <= 0) return BadRequest("El precio debe ser mayor a 0.");
-            if (dto.Stock < 0) return BadRequest("Stock no válido.");
-
-            // 1. Manejo de la Imagen
-            string rutaImagen = null;
-            if (dto.Imagen != null)
+            // BLOQUE DE SEGURIDAD (TRY-CATCH)
+            try
             {
-                // Crear carpeta uploads si no existe
-                string folder = Path.Combine(_env.WebRootPath, "uploads");
-                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                // Validaciones básicas
+                if (string.IsNullOrWhiteSpace(dto.Nombre)) return BadRequest("El nombre es obligatorio.");
+                if (dto.Precio <= 0) return BadRequest("El precio debe ser mayor a 0.");
 
-                // Nombre único para el archivo
-                string nombreArchivo = Guid.NewGuid().ToString() + Path.GetExtension(dto.Imagen.FileName);
-                string rutaCompleta = Path.Combine(folder, nombreArchivo);
-
-                using (var stream = new FileStream(rutaCompleta, FileMode.Create))
+                // 1. Manejo de la Imagen (CORREGIDO PARA AZURE)
+                string rutaImagen = null;
+                if (dto.Imagen != null)
                 {
-                    await dto.Imagen.CopyToAsync(stream);
+                    // Truco: Si WebRootPath es nulo (pasa en Azure), usamos ContentRootPath
+                    string webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
+
+                    // Aseguramos que la carpeta exista dentro de wwwroot
+                    string folder = Path.Combine(webRootPath, "wwwroot", "uploads");
+
+                    // Si no existe la carpeta, la creamos
+                    if (!Directory.Exists(folder))
+                    {
+                        Directory.CreateDirectory(folder);
+                    }
+
+                    // Nombre único
+                    string nombreArchivo = Guid.NewGuid().ToString() + Path.GetExtension(dto.Imagen.FileName);
+                    string rutaCompleta = Path.Combine(folder, nombreArchivo);
+
+                    using (var stream = new FileStream(rutaCompleta, FileMode.Create))
+                    {
+                        await dto.Imagen.CopyToAsync(stream);
+                    }
+
+                    rutaImagen = "/uploads/" + nombreArchivo;
                 }
 
-                rutaImagen = "/uploads/" + nombreArchivo;
+                // 2. Crear el objeto
+                var nuevoProducto = new Producto
+                {
+                    Nombre = dto.Nombre,
+                    Descripcion = dto.Descripcion,
+                    Precio = dto.Precio,
+                    Stock = dto.Stock,
+                    CategoriaProducto = dto.CategoriaProducto,
+                    Activo = dto.Activo,
+                    Talles = dto.Talles,
+                    ImagenUrl = rutaImagen ?? "/img/default_product.png"
+                };
+
+                _context.Productos.Add(nuevoProducto);
+
+                // Aquí es donde suele explotar si las columnas no coinciden
+                await _context.SaveChangesAsync();
+
+                return CreatedAtAction("GetProducto", new { id = nuevoProducto.Id }, nuevoProducto);
             }
-
-            // 2. Crear el objeto Producto
-            var nuevoProducto = new Producto
+            catch (Exception ex)
             {
-                Nombre = dto.Nombre,
-                Descripcion = dto.Descripcion,
-                Precio = dto.Precio,
-                Stock = dto.Stock,
-                CategoriaProducto = dto.CategoriaProducto,
-                Activo = dto.Activo,
-                Talles = dto.Talles, // <--- Aquí guardamos los talles
-                ImagenUrl = rutaImagen ?? "/img/default_product.png"
-            };
-
-            _context.Productos.Add(nuevoProducto);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetProducto", new { id = nuevoProducto.Id }, nuevoProducto);
+                // ESTO ES ORO: Devuelve el error real (incluyendo detalles internos)
+                var mensajeError = "Error interno: " + ex.Message;
+                if (ex.InnerException != null)
+                {
+                    mensajeError += " | Detalle: " + ex.InnerException.Message;
+                }
+                return StatusCode(500, mensajeError);
+            }
         }
 
         // DELETE: api/Productos/5
@@ -101,7 +124,6 @@ namespace TaraguyAPI.Controllers
         }
     }
 
-    // CLASE AUXILIAR PARA RECIBIR DATOS + ARCHIVO
     public class ProductoDto
     {
         public string Nombre { get; set; }
@@ -110,7 +132,7 @@ namespace TaraguyAPI.Controllers
         public int Stock { get; set; }
         public string CategoriaProducto { get; set; }
         public bool Activo { get; set; }
-        public string? Talles { get; set; } // <--- Talles
-        public IFormFile? Imagen { get; set; } // <--- Archivo real
+        public string? Talles { get; set; }
+        public IFormFile? Imagen { get; set; }
     }
 }
