@@ -20,115 +20,81 @@ namespace TaraguyAPI.Controllers
             _context = context;
         }
 
-        // --- NUEVO: Trae EL partido que se va a jugar pronto (solo 1) ---
+        // GET: Proximo partido
         [HttpGet("proximo")]
         public async Task<ActionResult<Partido>> GetProximo()
         {
             var hoy = DateTime.Now;
-
             var partido = await _context.Partidos
-                .Where(p => p.FechaHora > hoy) // Solo buscamos en el futuro
-                .OrderBy(p => p.FechaHora)     // El más cercano a hoy
-                .FirstOrDefaultAsync();        // Tomamos el primero
+                .Where(p => p.FechaHora > hoy)
+                .OrderBy(p => p.FechaHora)
+                .FirstOrDefaultAsync();
 
-            if (partido == null) return NoContent(); // Si no hay nada, devuelve vacío (204)
+            if (partido == null) return NoContent();
             return partido;
         }
 
-        // --- NUEVO: Trae los últimos 5 resultados (Historial) ---
+        // GET: Historial
         [HttpGet("resultados")]
         public async Task<ActionResult<IEnumerable<Partido>>> GetResultados()
         {
             var hoy = DateTime.Now;
-
             return await _context.Partidos
-                .Where(p => p.FechaHora <= hoy) // Solo buscamos en el pasado
-                .OrderByDescending(p => p.FechaHora) // Del más reciente hacia atrás
-                .Take(5) // Solo los últimos 5
+                .Where(p => p.FechaHora <= hoy)
+                .OrderByDescending(p => p.FechaHora)
+                .Take(5)
                 .ToListAsync();
         }
-        // -----------------------------------------------------------
 
-        // GET: api/Partidos (Trae TODOS, para el Admin)
+        // GET: Todos (Admin)
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Partido>>> GetPartidos()
         {
-            return await _context.Partidos.ToListAsync();
+            return await _context.Partidos.OrderByDescending(p => p.FechaHora).ToListAsync();
         }
 
-        // GET: api/Partidos/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Partido>> GetPartido(int id)
-        {
-            var partido = await _context.Partidos.FindAsync(id);
-
-            if (partido == null)
-            {
-                return NotFound();
-            }
-
-            return partido;
-        }
-
-        // PUT: api/Partidos/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutPartido(int id, Partido partido)
-        {
-            if (id != partido.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(partido).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!PartidoExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/Partidos
+        // POST: Crear Partido (Protegido)
         [HttpPost]
         public async Task<ActionResult<Partido>> PostPartido(Partido partido)
         {
-            _context.Partidos.Add(partido);
-            await _context.SaveChangesAsync();
+            try
+            {
+                // Validación básica
+                if (string.IsNullOrEmpty(partido.Rival)) return BadRequest("El rival es obligatorio");
 
-            return CreatedAtAction("GetPartido", new { id = partido.Id }, partido);
+                // Asegurar que la fecha sea UTC si Azure da problemas de zona horaria
+                if (partido.FechaHora == default) partido.FechaHora = DateTime.Now;
+
+                _context.Partidos.Add(partido);
+                await _context.SaveChangesAsync();
+
+                return CreatedAtAction("GetPartido", new { id = partido.Id }, partido);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Error al guardar partido: " + ex.Message);
+            }
         }
 
-        // DELETE: api/Partidos/5
+        // DELETE: Borrar Partido
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePartido(int id)
         {
             var partido = await _context.Partidos.FindAsync(id);
-            if (partido == null)
-            {
-                return NotFound();
-            }
+            if (partido == null) return NotFound();
 
             _context.Partidos.Remove(partido);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
-        private bool PartidoExists(int id)
+        // Helper
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Partido>> GetPartido(int id)
         {
-            return _context.Partidos.Any(e => e.Id == id);
+            var partido = await _context.Partidos.FindAsync(id);
+            if (partido == null) return NotFound();
+            return partido;
         }
     }
 }

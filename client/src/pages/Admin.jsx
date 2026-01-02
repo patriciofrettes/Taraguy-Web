@@ -2,6 +2,9 @@
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+// 1. URL BASE LIMPIA (Sin el error de https doble)
+const API_URL = "https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net";
+
 const Admin = () => {
     const [tabActiva, setTabActiva] = useState('tienda');
     const navigate = useNavigate();
@@ -16,9 +19,14 @@ const Admin = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                     <h1 className="text-3xl font-black uppercase tracking-tight">Panel de Control</h1>
-                    <button onClick={handleLogout} className="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700 transition">
-                        Cerrar Sesión
-                    </button>
+                    <div className="flex gap-4">
+                        <button onClick={() => window.open('/', '_blank')} className="text-gray-600 font-bold hover:text-black transition">
+                            Ver Web Pública ↗
+                        </button>
+                        <button onClick={handleLogout} className="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700 transition">
+                            Cerrar Sesión
+                        </button>
+                    </div>
                 </div>
 
                 {/* MENÚ DE PESTAÑAS */}
@@ -48,24 +56,21 @@ const Admin = () => {
 };
 
 /* ====================================================================================
-   1. COMPONENTE TIENDA (Con Edición y Talles)
+   SECCIÓN 1: TIENDA (PRODUCTOS)
    ==================================================================================== */
 const PanelTienda = () => {
     const [productos, setProductos] = useState([]);
-    const [editandoId, setEditandoId] = useState(null); // ID del producto que estamos editando
-
+    const [editandoId, setEditandoId] = useState(null);
     const [form, setForm] = useState({
         nombre: '', descripcion: '', precio: '', stock: '',
         categoriaProducto: 'Indumentaria', talles: '', visible: true, imagen: null
     });
 
-    useEffect(() => { cargarProductos(); }, []);
+    useEffect(() => { cargar(); }, []);
 
-    const cargarProductos = async () => {
-        try {
-            const res = await axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Productos');
-            setProductos(res.data);
-        } catch (error) { console.error(error); }
+    const cargar = async () => {
+        try { const res = await axios.get(`${API_URL}/api/Productos`); setProductos(res.data); }
+        catch (e) { console.error(e); }
     };
 
     const handleChange = (e) => {
@@ -73,123 +78,84 @@ const PanelTienda = () => {
         setForm({ ...form, [name]: type === 'checkbox' ? checked : (type === 'file' ? files[0] : value) });
     };
 
-    // FUNCIÓN PARA CARGAR DATOS EN EL FORMULARIO (MODO EDICIÓN)
     const iniciarEdicion = (prod) => {
         setEditandoId(prod.id);
         setForm({
-            nombre: prod.nombre,
-            descripcion: prod.descripcion || '',
-            precio: prod.precio,
-            stock: prod.stock,
-            categoriaProducto: prod.categoriaProducto,
-            talles: prod.talles || '',
-            visible: prod.activo,
-            imagen: null // La imagen no se precarga porque es un archivo, solo se cambia si suben otra
+            nombre: prod.nombre, descripcion: prod.descripcion || '', precio: prod.precio,
+            stock: prod.stock, categoriaProducto: prod.categoriaProducto, talles: prod.talles || '',
+            visible: prod.activo, imagen: null
         });
-        // Scroll hacia arriba suavemente para ver el formulario
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const cancelarEdicion = () => {
         setEditandoId(null);
         setForm({ nombre: '', descripcion: '', precio: '', stock: '', categoriaProducto: 'Indumentaria', talles: '', visible: true, imagen: null });
-        document.getElementById('fileInput').value = "";
+        const fileInput = document.getElementById('fileInputProd');
+        if (fileInput) fileInput.value = "";
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const formData = new FormData();
-        formData.append('nombre', form.nombre);
-        formData.append('descripcion', form.descripcion);
-        formData.append('precio', form.precio);
-        formData.append('stock', form.stock);
-        formData.append('categoriaProducto', form.categoriaProducto);
-        formData.append('activo', form.visible);
-        formData.append('talles', form.talles);
-        if (form.imagen) formData.append('imagen', form.imagen);
-
-        // AGREGAR EL ID SI ESTAMOS EDITANDO
+        Object.keys(form).forEach(key => {
+            if (form[key] !== null) formData.append(key, form[key]);
+        });
         if (editandoId) formData.append('id', editandoId);
 
         try {
-            if (editandoId) {
-                // MODO EDICIÓN (PUT)
-                // Nota: Axios con FormData en PUT a veces requiere trucos en .NET, pero probemos directo.
-                // Si falla, avísame y ajustamos el Controller para recibir PUT con archivos.
-                // Por ahora, usaremos POST también para editar o ajusta tu controller para PUT.
-                // TRUCO SEGURO: Usamos el mismo endpoint POST pero el backend detecta el ID? 
-                // No, lo estándar es PUT. Vamos a intentar PUT.
-                await axios.put(`https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Productos/${editandoId}`, form);
-                // ⚠️ OJO: Editar imágenes con PUT requiere lógica especial. 
-                // Si esto da error, te paso una solución rápida.
-                alert('Producto actualizado (Nota: Si cambiaste imagen y no se ve, avísame).');
-            } else {
-                // MODO CREACIÓN (POST)
-                await axios.post('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Productos', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-                alert('Producto creado.');
-            }
-            cargarProductos();
-            cancelarEdicion();
-        } catch (error) {
-            console.error(error);
-            alert("Error al guardar. Verifica los datos.");
-        }
+            if (editandoId) await axios.put(`${API_URL}/api/Productos/${editandoId}`, form); // Nota: PUT simple si no cambias foto, o ajustar lógica
+            else await axios.post(`${API_URL}/api/Productos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+
+            alert(editandoId ? 'Producto actualizado' : 'Producto creado');
+            cargar(); cancelarEdicion();
+        } catch (error) { alert("Error al guardar producto."); console.error(error); }
     };
 
     const borrar = async (id) => {
-        if (!confirm("¿Borrar producto?")) return;
-        await axios.delete(`https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Productos/${id}`);
-        cargarProductos();
+        if (confirm("¿Borrar producto?")) {
+            await axios.delete(`${API_URL}/api/Productos/${id}`);
+            cargar();
+        }
     };
 
     return (
         <div>
-            <h2 className="text-2xl font-black uppercase mb-6 flex justify-between items-center">
-                {editandoId ? '✏️ Editando Producto' : '➕ Nuevo Producto'}
-                {editandoId && <button onClick={cancelarEdicion} className="text-sm bg-gray-500 text-white px-3 py-1 rounded">Cancelar Edición</button>}
-            </h2>
-
+            <h2 className="text-2xl font-black uppercase mb-6">{editandoId ? '✏️ Editar Producto' : '➕ Nuevo Producto'}</h2>
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 bg-gray-50 p-6 rounded-xl border border-dashed border-gray-300">
-                <div><label className="font-bold text-sm">Nombre</label><input required name="nombre" value={form.nombre} onChange={handleChange} className="w-full border p-2 rounded" /></div>
-                <div>
-                    <label className="font-bold text-sm">Categoría</label>
-                    <select name="categoriaProducto" value={form.categoriaProducto} onChange={handleChange} className="w-full border p-2 rounded">
-                        <option>Indumentaria</option><option>Accesorios</option><option>Tercer Tiempo</option>
-                    </select>
-                </div>
-                <div className="col-span-2"><label className="font-bold text-sm">Descripción</label><textarea name="descripcion" value={form.descripcion} onChange={handleChange} className="w-full border p-2 rounded h-20" /></div>
-
-                {form.categoriaProducto === 'Indumentaria' && (
-                    <div className="col-span-2"><label className="font-bold text-sm">Talles</label><input name="talles" value={form.talles} onChange={handleChange} placeholder="Ej: 10, 12, S, M, L" className="w-full border p-2 rounded" /></div>
-                )}
-
-                <div><label className="font-bold text-sm">Precio</label><input type="number" required name="precio" value={form.precio} onChange={handleChange} className="w-full border p-2 rounded" /></div>
-                <div><label className="font-bold text-sm">Stock</label><input type="number" required name="stock" value={form.stock} onChange={handleChange} className="w-full border p-2 rounded" /></div>
-
+                <input required name="nombre" placeholder="Nombre" value={form.nombre} onChange={handleChange} className="border p-2 rounded" />
+                <select name="categoriaProducto" value={form.categoriaProducto} onChange={handleChange} className="border p-2 rounded">
+                    <option>Indumentaria</option><option>Accesorios</option><option>Tercer Tiempo</option>
+                </select>
+                <textarea name="descripcion" placeholder="Descripción" value={form.descripcion} onChange={handleChange} className="col-span-2 border p-2 rounded h-20" />
+                {form.categoriaProducto === 'Indumentaria' && <input name="talles" placeholder="Talles (S, M, L)" value={form.talles} onChange={handleChange} className="col-span-2 border p-2 rounded" />}
+                <input type="number" placeholder="Precio" required name="precio" value={form.precio} onChange={handleChange} className="border p-2 rounded" />
+                <input type="number" placeholder="Stock" required name="stock" value={form.stock} onChange={handleChange} className="border p-2 rounded" />
                 <div className="col-span-2">
-                    <label className="font-bold text-sm">Imagen {editandoId && "(Dejar vacío para mantener la actual)"}</label>
-                    <input id="fileInput" type="file" name="imagen" onChange={handleChange} className="w-full" />
+                    <label className="block text-sm font-bold mb-1">Imagen</label>
+                    <input id="fileInputProd" type="file" name="imagen" onChange={handleChange} className="w-full" />
                 </div>
-
-                <div className="col-span-2"><button type="submit" className={`w-full py-3 rounded font-bold text-white uppercase ${editandoId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-black hover:bg-gray-800'}`}>{editandoId ? 'Guardar Cambios' : 'Publicar Producto'}</button></div>
+                <div className="col-span-2 flex gap-2">
+                    <button type="submit" className="flex-1 bg-black text-white py-3 rounded font-bold uppercase hover:bg-gray-800">{editandoId ? 'Guardar Cambios' : 'Publicar'}</button>
+                    {editandoId && <button type="button" onClick={cancelarEdicion} className="bg-gray-500 text-white px-4 rounded font-bold">Cancelar</button>}
+                </div>
             </form>
 
             <h3 className="font-black uppercase text-lg mb-4">Inventario</h3>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-100 uppercase font-bold text-gray-600">
-                        <tr><th className="p-3">Foto</th><th className="p-3">Nombre</th><th className="p-3">Precio</th><th className="p-3 text-center">Stock</th><th className="p-3 text-right">Acciones</th></tr>
+                        <tr><th className="p-3">Foto</th><th className="p-3">Nombre</th><th className="p-3">Precio</th><th className="p-3 text-right">Acciones</th></tr>
                     </thead>
                     <tbody className="divide-y">
                         {productos.map(p => (
                             <tr key={p.id} className="hover:bg-gray-50">
-                                <td className="p-3"><img src={p.imagenUrl ? `https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net/${p.imagenUrl}` : '/img/default.png'} className="w-10 h-10 object-cover rounded" /></td>
+                                <td className="p-3"><img src={p.imagenUrl ? `${API_URL}${p.imagenUrl}` : '/img/default.png'} className="w-10 h-10 object-cover rounded" /></td>
                                 <td className="p-3 font-bold">{p.nombre}</td>
                                 <td className="p-3 text-green-600">${p.precio}</td>
-                                <td className="p-3 text-center"><span className={`px-2 py-1 rounded text-white ${p.stock > 0 ? 'bg-blue-500' : 'bg-red-500'}`}>{p.stock}</span></td>
-                                <td className="p-3 text-right flex justify-end gap-2">
-                                    <button onClick={() => iniciarEdicion(p)} className="text-blue-600 font-bold hover:underline">EDITAR</button>
-                                    <button onClick={() => borrar(p.id)} className="text-red-600 font-bold hover:underline">BORRAR</button>
+                                <td className="p-3 text-right">
+                                    <button onClick={() => iniciarEdicion(p)} className="text-blue-600 font-bold mr-3">EDITAR</button>
+                                    <button onClick={() => borrar(p.id)} className="text-red-600 font-bold">BORRAR</button>
                                 </td>
                             </tr>
                         ))}
@@ -201,34 +167,153 @@ const PanelTienda = () => {
 };
 
 /* ====================================================================================
-   2. COMPONENTE NOTICIAS
+   SECCIÓN 2: NOTICIAS
    ==================================================================================== */
 const PanelNoticias = () => {
     const [noticias, setNoticias] = useState([]);
-    const [form, setForm] = useState({ titulo: '', copete: '', cuerpo: '', autor: '', imagen: null });
+    const [form, setForm] = useState({ titulo: '', copete: '', cuerpo: '', autor: 'Admin', imagen: null });
 
-    useEffect(() => {
-        axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Noticias').then(res => setNoticias(res.data));
-    }, []);
+    useEffect(() => { cargar(); }, []);
 
-    // ... lógica simple para crear noticias ...
+    const cargar = async () => {
+        try { const res = await axios.get(`${API_URL}/api/Noticias`); setProductos(res.data); setNoticias(res.data); }
+        catch (e) { console.error(e); }
+    };
+
+    const handleChange = (e) => {
+        const { name, value, files } = e.target;
+        setForm({ ...form, [name]: files ? files[0] : value });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // Aquí iría la lógica similar a Tienda para subir noticias con foto
-        // Por brevedad, te dejo la estructura lista para conectar si tienes el endpoint listo
-        alert("Funcionalidad de carga de noticias en construcción. (Requiere ajustar NoticiasController para recibir Fotos como Tienda)");
+        const formData = new FormData();
+        formData.append('titulo', form.titulo);
+        formData.append('copete', form.copete);
+        formData.append('cuerpo', form.cuerpo);
+        formData.append('autor', form.autor);
+        if (form.imagen) formData.append('imagen', form.imagen);
+
+        try {
+            await axios.post(`${API_URL}/api/Noticias`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            alert('Noticia publicada');
+            setForm({ titulo: '', copete: '', cuerpo: '', autor: 'Admin', imagen: null });
+            document.getElementById('fileInputNews').value = "";
+            cargar();
+        } catch (error) { alert("Error al guardar noticia. (Verifica si el backend soporta imágenes)"); console.error(error); }
+    };
+
+    const borrar = async (id) => {
+        if (confirm("¿Borrar noticia?")) {
+            await axios.delete(`${API_URL}/api/Noticias/${id}`);
+            cargar();
+        }
     };
 
     return (
         <div>
-            <h2 className="text-2xl font-black uppercase mb-6">Gestionar Noticias</h2>
-            <p className="text-gray-500 mb-4">Aquí podrás cargar las novedades del club.</p>
-            {/* LISTADO SIMPLE */}
-            <ul className="space-y-2">
+            <h2 className="text-2xl font-black uppercase mb-6">➕ Nueva Noticia</h2>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 mb-10 bg-gray-50 p-6 rounded-xl border border-dashed border-gray-300">
+                <input required name="titulo" placeholder="Título de la noticia" value={form.titulo} onChange={handleChange} className="border p-3 rounded font-bold" />
+                <textarea name="copete" placeholder="Copete (Resumen corto)" value={form.copete} onChange={handleChange} className="border p-3 rounded h-20" />
+                <textarea required name="cuerpo" placeholder="Cuerpo de la noticia (Texto completo)" value={form.cuerpo} onChange={handleChange} className="border p-3 rounded h-40" />
+
+                <div>
+                    <label className="block text-sm font-bold mb-1">Imagen de Portada</label>
+                    <input id="fileInputNews" type="file" name="imagen" onChange={handleChange} className="w-full bg-white p-2 border rounded" />
+                </div>
+
+                <button type="submit" className="bg-black text-white py-3 rounded font-bold uppercase hover:bg-gray-800">Publicar Noticia</button>
+            </form>
+
+            <h3 className="font-black uppercase text-lg mb-4">Últimas Noticias</h3>
+            <div className="space-y-3">
                 {noticias.map(n => (
-                    <li key={n.id} className="border p-4 rounded flex justify-between">
-                        <span className="font-bold">{n.titulo}</span>
-                        <span className="text-sm text-gray-500">{new Date(n.fechaPublicacion).toLocaleDateString()}</span>
+                    <div key={n.id} className="flex justify-between items-center bg-white border p-4 rounded shadow-sm">
+                        <div className="flex items-center gap-4">
+                            {n.imagenUrl && <img src={`${API_URL}${n.imagenUrl}`} className="w-16 h-16 object-cover rounded" />}
+                            <div>
+                                <h4 className="font-bold text-lg">{n.titulo}</h4>
+                                <p className="text-xs text-gray-500">{new Date(n.fechaPublicacion).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        <button onClick={() => borrar(n.id)} className="text-red-500 font-bold text-sm border border-red-200 px-3 py-1 rounded hover:bg-red-50">ELIMINAR</button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+/* ====================================================================================
+   SECCIÓN 3: PARTIDOS
+   ==================================================================================== */
+const PanelPartidos = () => {
+    const [partidos, setPartidos] = useState([]);
+    const [form, setForm] = useState({ rival: '', fecha: '', lugar: 'Local', resultado: '' });
+
+    useEffect(() => { cargar(); }, []);
+
+    const cargar = async () => {
+        try { const res = await axios.get(`${API_URL}/api/Partidos`); setPartidos(res.data); }
+        catch (e) { console.error(e); }
+    };
+
+    const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await axios.post(`${API_URL}/api/Partidos`, form);
+            alert('Partido agendado');
+            setForm({ rival: '', fecha: '', lugar: 'Local', resultado: '' });
+            cargar();
+        } catch (error) { alert("Error al guardar partido."); console.error(error); }
+    };
+
+    const borrar = async (id) => {
+        if (confirm("¿Borrar partido?")) {
+            await axios.delete(`${API_URL}/api/Partidos/${id}`);
+            cargar();
+        }
+    };
+
+    return (
+        <div>
+            <h2 className="text-2xl font-black uppercase mb-6">➕ Agendar Partido</h2>
+            <form onSubmit={handleSubmit} className="flex flex-wrap gap-4 mb-10 bg-gray-50 p-6 rounded-xl border border-dashed border-gray-300 items-end">
+                <div className="flex-grow">
+                    <label className="text-xs font-bold uppercase">Rival</label>
+                    <input required name="rival" placeholder="Ej: Aranduroga" value={form.rival} onChange={handleChange} className="w-full border p-2 rounded" />
+                </div>
+                <div>
+                    <label className="text-xs font-bold uppercase">Fecha</label>
+                    <input type="datetime-local" required name="fecha" value={form.fecha} onChange={handleChange} className="border p-2 rounded" />
+                </div>
+                <div>
+                    <label className="text-xs font-bold uppercase">Condición</label>
+                    <select name="lugar" value={form.lugar} onChange={handleChange} className="border p-2 rounded h-[42px]">
+                        <option>Local</option>
+                        <option>Visitante</option>
+                    </select>
+                </div>
+                <div>
+                    <label className="text-xs font-bold uppercase">Resultado (Opcional)</label>
+                    <input name="resultado" placeholder="Ej: 20 - 15" value={form.resultado} onChange={handleChange} className="border p-2 rounded w-32" />
+                </div>
+                <button type="submit" className="bg-black text-white px-6 py-2 rounded font-bold uppercase h-[42px]">Guardar</button>
+            </form>
+
+            <h3 className="font-black uppercase text-lg mb-4">Fixture</h3>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {partidos.map(p => (
+                    <li key={p.id} className="border p-4 rounded bg-white shadow-sm flex justify-between items-center">
+                        <div>
+                            <p className="text-xs text-gray-500 font-bold uppercase">{new Date(p.fecha).toLocaleString()}</p>
+                            <h4 className="font-black text-xl uppercase">Taraguy vs {p.rival}</h4>
+                            <p className="text-sm">{p.lugar} {p.resultado && `| ${p.resultado}`}</p>
+                        </div>
+                        <button onClick={() => borrar(p.id)} className="text-red-500 font-bold text-xs">X</button>
                     </li>
                 ))}
             </ul>
@@ -237,34 +322,54 @@ const PanelNoticias = () => {
 };
 
 /* ====================================================================================
-   3. COMPONENTE PARTIDOS
-   ==================================================================================== */
-const PanelPartidos = () => {
-    return (
-        <div className="text-center py-10">
-            <h2 className="text-2xl font-black uppercase mb-4">Gestión de Partidos</h2>
-            <p className="text-gray-500">Próximamente: Carga de rivales, fechas y resultados.</p>
-        </div>
-    );
-};
-
-/* ====================================================================================
-   4. COMPONENTE VENTAS
+   SECCIÓN 4: VENTAS
    ==================================================================================== */
 const PanelVentas = () => {
     const [ordenes, setOrdenes] = useState([]);
 
     useEffect(() => {
-        // Asumiendo que existe un endpoint de Ordenes
-        // axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Ordenes').then(res => setOrdenes(res.data));
+        // Intentamos cargar ordenes, si falla no mostramos error grave
+        axios.get(`${API_URL}/api/Ordenes`)
+            .then(res => setOrdenes(res.data))
+            .catch(e => console.log("Aún no hay sistema de ordenes o falló la conexión"));
     }, []);
 
     return (
         <div>
             <h2 className="text-2xl font-black uppercase mb-6">Historial de Ventas</h2>
-            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded text-yellow-800">
-                Aquí aparecerán las compras realizadas por MercadoPago.
-            </div>
+            {ordenes.length === 0 ? (
+                <div className="bg-yellow-50 border border-yellow-200 p-6 rounded text-yellow-800 text-center">
+                    <p className="font-bold">No hay ventas registradas aún.</p>
+                    <p className="text-sm">Cuando alguien compre en la tienda, aparecerá aquí.</p>
+                </div>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left border">
+                        <thead className="bg-gray-100 uppercase font-bold text-gray-600">
+                            <tr>
+                                <th className="p-3">ID Orden</th>
+                                <th className="p-3">Fecha</th>
+                                <th className="p-3">Cliente</th>
+                                <th className="p-3">Total</th>
+                                <th className="p-3 text-center">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                            {ordenes.map(o => (
+                                <tr key={o.id} className="hover:bg-gray-50">
+                                    <td className="p-3 font-mono">#{o.id}</td>
+                                    <td className="p-3">{new Date(o.fecha).toLocaleDateString()}</td>
+                                    <td className="p-3 font-bold">{o.nombreCliente || 'Anónimo'}</td>
+                                    <td className="p-3 text-green-600 font-bold">${o.total}</td>
+                                    <td className="p-3 text-center">
+                                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold uppercase">Pagado</span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 };
