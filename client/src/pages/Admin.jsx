@@ -56,7 +56,6 @@ const PanelTienda = () => {
         categoriaProducto: 'Indumentaria', talles: '', visible: true, imagen: null
     });
 
-    // CORRECCIÓN: Definimos la función ANTES del useEffect
     const cargar = async () => {
         try { const res = await axios.get(`${API_URL}/api/Productos`); setProductos(res.data); }
         catch (e) { console.error(e); }
@@ -141,7 +140,7 @@ const PanelTienda = () => {
                     <tbody className="divide-y">
                         {productos.map(p => (
                             <tr key={p.id} className="hover:bg-gray-50">
-                                <td className="p-3"><img src={p.imagenUrl ? `${API_URL}${p.imagenUrl}` : '/img/default.png'} className="w-10 h-10 object-cover rounded" /></td>
+                                <td className="p-3"><img src={p.imagenUrl ? `${API_URL}${p.imagenUrl}` : '/img/default.png'} className="w-10 h-10 object-cover rounded" alt="prod" /></td>
                                 <td className="p-3 font-bold">{p.nombre}</td>
                                 <td className="p-3 text-green-600">${p.precio}</td>
                                 <td className="p-3 text-right">
@@ -162,7 +161,6 @@ const PanelNoticias = () => {
     const [noticias, setNoticias] = useState([]);
     const [form, setForm] = useState({ titulo: '', copete: '', cuerpo: '', imagen: null });
 
-    // CORRECCIÓN: Función antes del useEffect
     const cargar = async () => {
         try { const res = await axios.get(`${API_URL}/api/Noticias`); setNoticias(res.data); }
         catch (e) { console.error(e); }
@@ -181,7 +179,6 @@ const PanelNoticias = () => {
         formData.append('titulo', form.titulo);
         formData.append('copete', form.copete);
         formData.append('cuerpo', form.cuerpo);
-        // Quitamos 'autor' porque tu backend dio error con eso
         if (form.imagen) formData.append('imagen', form.imagen);
 
         try {
@@ -219,7 +216,7 @@ const PanelNoticias = () => {
                 {noticias.map(n => (
                     <div key={n.id} className="flex justify-between items-center bg-white border p-4 rounded shadow-sm">
                         <div className="flex items-center gap-4">
-                            {n.imagenUrl && <img src={`${API_URL}${n.imagenUrl}`} className="w-16 h-16 object-cover rounded" />}
+                            {n.imagenUrl && <img src={`${API_URL}${n.imagenUrl}`} className="w-16 h-16 object-cover rounded" alt="noticia" />}
                             <h4 className="font-bold text-lg">{n.titulo}</h4>
                         </div>
                         <button onClick={() => borrar(n.id)} className="text-red-500 font-bold text-sm border border-red-200 px-3 py-1 rounded hover:bg-red-50">ELIMINAR</button>
@@ -230,12 +227,14 @@ const PanelNoticias = () => {
     );
 };
 
-/* --- 3. PARTIDOS --- */
+/* --- 3. PARTIDOS (ACTUALIZADO CON DEPORTES Y CATEGORÍAS) --- */
 const PanelPartidos = () => {
     const [partidos, setPartidos] = useState([]);
-    const [form, setForm] = useState({ rival: '', fecha: '', lugar: 'Local', resultado: '' });
+    const [form, setForm] = useState({
+        rival: '', fecha: '', lugar: 'Local', resultado: '',
+        disciplina: 'Rugby', categoria: 'Primera', escudoRivalUrl: ''
+    });
 
-    // CORRECCIÓN: Función antes del useEffect
     const cargar = async () => {
         try { const res = await axios.get(`${API_URL}/api/Partidos`); setPartidos(res.data); }
         catch (e) { console.error(e); }
@@ -250,14 +249,20 @@ const PanelPartidos = () => {
         try {
             await axios.post(`${API_URL}/api/Partidos`, form);
             alert('Partido agendado');
-            setForm({ rival: '', fecha: '', lugar: 'Local', resultado: '' });
+            setForm({ ...form, rival: '', fecha: '', resultado: '', escudoRivalUrl: '' }); // Limpiar campos no-default
             cargar();
-        } catch (error) { alert("Error al guardar partido."); console.error(error); }
+        } catch (error) { alert("Error al guardar."); }
     };
 
     const borrar = async (id) => {
-        if (confirm("¿Borrar partido?")) {
-            await axios.delete(`${API_URL}/api/Partidos/${id}`);
+        if (confirm("¿Borrar?")) { await axios.delete(`${API_URL}/api/Partidos/${id}`); cargar(); }
+    };
+
+    const cargarResultado = async (p) => {
+        const res = prompt("Ingresá el resultado (Ej: 20-15):", p.resultado || "");
+        if (res !== null) {
+            // Enviamos todo el objeto partido actualizado con el resultado nuevo
+            await axios.put(`${API_URL}/api/Partidos/${p.id}`, { ...p, resultado: res });
             cargar();
         }
     };
@@ -265,35 +270,68 @@ const PanelPartidos = () => {
     return (
         <div>
             <h2 className="text-2xl font-black uppercase mb-6">➕ Agendar Partido</h2>
-            <form onSubmit={handleSubmit} className="flex flex-wrap gap-4 mb-10 bg-gray-50 p-6 rounded-xl border border-dashed border-gray-300 items-end">
-                <div className="flex-grow">
-                    <label className="text-xs font-bold uppercase">Rival</label>
-                    <input required name="rival" placeholder="Ej: Aranduroga" value={form.rival} onChange={handleChange} className="w-full border p-2 rounded" />
-                </div>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 bg-gray-50 p-6 rounded-xl border border-dashed border-gray-300">
+
+                {/* FILA 1 */}
                 <div>
-                    <label className="text-xs font-bold uppercase">Fecha</label>
-                    <input type="datetime-local" required name="fecha" value={form.fecha} onChange={handleChange} className="border p-2 rounded" />
-                </div>
-                <div>
-                    <label className="text-xs font-bold uppercase">Condición</label>
-                    <select name="lugar" value={form.lugar} onChange={handleChange} className="border p-2 rounded h-[42px]">
-                        <option>Local</option>
-                        <option>Visitante</option>
+                    <label className="text-xs font-bold uppercase block mb-1">Deporte</label>
+                    <select name="disciplina" value={form.disciplina} onChange={handleChange} className="w-full border p-2 rounded">
+                        <option>Rugby</option><option>Hockey</option>
                     </select>
                 </div>
-                <button type="submit" className="bg-black text-white px-6 py-2 rounded font-bold uppercase h-[42px]">Guardar</button>
+                <div>
+                    <label className="text-xs font-bold uppercase block mb-1">Categoría</label>
+                    <select name="categoria" value={form.categoria} onChange={handleChange} className="w-full border p-2 rounded">
+                        <option>Primera</option><option>Intermedia</option><option>Pre-Intermedia</option>
+                        <option>M-19</option><option>M-17</option><option>M-16</option><option>M-15</option>
+                        <option>Plantel Superior (F)</option><option>Sub-18 (F)</option><option>Sub-16 (F)</option>
+                    </select>
+                </div>
+                <div>
+                    <label className="text-xs font-bold uppercase block mb-1">Fecha y Hora</label>
+                    <input type="datetime-local" required name="fecha" value={form.fecha} onChange={handleChange} className="w-full border p-2 rounded" />
+                </div>
+
+                {/* FILA 2 */}
+                <div>
+                    <label className="text-xs font-bold uppercase block mb-1">Rival</label>
+                    <input required name="rival" placeholder="Nombre Rival" value={form.rival} onChange={handleChange} className="w-full border p-2 rounded" />
+                </div>
+                <div>
+                    <label className="text-xs font-bold uppercase block mb-1">Condición</label>
+                    <select name="lugar" value={form.lugar} onChange={handleChange} className="w-full border p-2 rounded">
+                        <option>Local</option><option>Visitante</option>
+                    </select>
+                </div>
+                <div>
+                    <label className="text-xs font-bold uppercase block mb-1">Escudo URL (Opcional)</label>
+                    <input name="escudoRivalUrl" placeholder="https://..." value={form.escudoRivalUrl} onChange={handleChange} className="w-full border p-2 rounded" />
+                </div>
+
+                <button type="submit" className="col-span-1 md:col-span-3 bg-black text-white py-3 rounded font-bold uppercase hover:bg-gray-800 transition">Guardar Partido</button>
             </form>
 
-            <h3 className="font-black uppercase text-lg mb-4">Fixture</h3>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h3 className="font-black uppercase text-lg mb-4">Fixture Actual</h3>
+            <ul className="space-y-2">
                 {partidos.map(p => (
-                    <li key={p.id} className="border p-4 rounded bg-white shadow-sm flex justify-between items-center">
-                        <div>
-                            <p className="text-xs text-gray-500 font-bold uppercase">{new Date(p.fecha).toLocaleString()}</p>
-                            <h4 className="font-black text-xl uppercase">Taraguy vs {p.rival}</h4>
-                            <p className="text-sm">{p.lugar}</p>
+                    <li key={p.id} className="border p-4 rounded bg-white shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div className="flex-grow">
+                            <div className="flex gap-2 mb-1">
+                                <span className={`text-[10px] font-bold px-2 py-1 rounded text-white ${p.disciplina === 'Rugby' ? 'bg-blue-900' : 'bg-pink-600'}`}>{p.disciplina}</span>
+                                <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-200 text-gray-700">{p.categoria}</span>
+                            </div>
+                            <span className="text-xs font-bold text-gray-500 uppercase block mb-1">
+                                {new Date(p.fechaHora).toLocaleDateString()} • {new Date(p.fechaHora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <h4 className="font-black uppercase text-xl">Taraguy vs {p.rival}</h4>
+                            <p className="text-sm font-bold text-green-700">{p.resultado || "Por jugar"}</p>
                         </div>
-                        <button onClick={() => borrar(p.id)} className="text-red-500 font-bold text-xs">X</button>
+                        <div className="flex gap-2">
+                            <button onClick={() => cargarResultado(p)} className="text-blue-600 font-bold text-xs border border-blue-200 px-3 py-2 rounded hover:bg-blue-50">
+                                {p.resultado ? 'EDITAR RESULTADO' : 'CARGAR RESULTADO'}
+                            </button>
+                            <button onClick={() => borrar(p.id)} className="text-red-500 font-bold text-xs border border-red-200 px-3 py-2 rounded hover:bg-red-50">BORRAR</button>
+                        </div>
                     </li>
                 ))}
             </ul>
@@ -316,7 +354,23 @@ const PanelVentas = () => {
                     <p className="font-bold">No hay ventas registradas aún.</p>
                 </div>
             ) : (
-                <p>Listado de ventas...</p>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-100 uppercase font-bold text-gray-600">
+                            <tr><th className="p-3">ID</th><th className="p-3">Cliente</th><th className="p-3">Total</th><th className="p-3">Estado</th></tr>
+                        </thead>
+                        <tbody className="divide-y">
+                            {ordenes.map(o => (
+                                <tr key={o.id} className="hover:bg-gray-50">
+                                    <td className="p-3">#{o.id}</td>
+                                    <td className="p-3 font-bold">{o.nombreCliente} {o.apellidoCliente}</td>
+                                    <td className="p-3">${o.total}</td>
+                                    <td className="p-3"><span className="bg-green-100 text-green-800 px-2 py-1 rounded font-bold text-xs">{o.estado}</span></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             )}
         </div>
     );

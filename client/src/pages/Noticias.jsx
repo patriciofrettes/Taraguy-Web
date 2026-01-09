@@ -2,11 +2,15 @@
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
+// URL BASE LIMPIA
+const API_URL = "https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net";
+
 const Noticias = () => {
     const [noticias, setNoticias] = useState([]);
 
     useEffect(() => {
-        axios.get('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Noticias')
+        // CORREGIDO: Usamos API_URL
+        axios.get(`${API_URL}/api/Noticias`)
             .then((response) => {
                 setNoticias(response.data);
             })
@@ -15,16 +19,14 @@ const Noticias = () => {
             });
     }, []);
 
-    // 🔧 FUNCIÓN INTELIGENTE: Decide de dónde sacar la foto
+    // 🔧 FUNCIÓN CORREGIDA
     const obtenerImagen = (ruta) => {
-        if (!ruta) return "/img/default.jpg"; // Si no hay ruta, foto por defecto
+        if (!ruta) return "/img/default_news.png";
 
-        // Si la ruta empieza con "/uploads", significa que está en el BACKEND
         if (ruta.startsWith("/uploads")) {
-            return `https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net/${ruta}`;
+            // CORREGIDO: Usamos API_URL sin repetir https
+            return `${API_URL}${ruta}`;
         }
-
-        // Si no, es una foto local (/img/...) o de internet, la dejamos igual
         return ruta;
     };
 
@@ -38,25 +40,27 @@ const Noticias = () => {
                 </div>
 
                 {noticias.length === 0 ? (
-                    <p className="text-gray-500">Cargando novedades...</p>
+                    <p className="text-gray-500 text-center py-10">Cargando novedades...</p>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {noticias.map((noticia) => (
-                            <div key={noticia.id} className="bg-white shadow-sm hover:shadow-2xl transition-all duration-300 group cursor-pointer">
+                            <div key={noticia.id} className="bg-white shadow-sm hover:shadow-2xl transition-all duration-300 group cursor-pointer rounded-xl overflow-hidden">
 
                                 <Link to={`/noticias/${noticia.id}`} className="block h-full flex flex-col">
                                     <div className="h-60 overflow-hidden bg-gray-200 relative">
-                                        {/* USAMOS LA FUNCIÓN AQUÍ ABAJO 👇 */}
                                         <img
                                             src={obtenerImagen(noticia.imagenUrl)}
                                             alt={noticia.titulo}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                            onError={(e) => { e.target.src = "/img/default.jpg"; }}
+                                            onError={(e) => { e.target.src = "https://via.placeholder.com/400?text=Noticia"; }}
                                         />
                                         <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity"></div>
                                     </div>
 
                                     <div className="p-6 border-t-4 border-black flex-1 flex flex-col">
+                                        <span className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">
+                                            {new Date(noticia.fechaPublicacion).toLocaleDateString()}
+                                        </span>
                                         <h3 className="text-xl font-black text-gray-900 leading-none mb-3 uppercase group-hover:text-red-700 transition-colors">
                                             {noticia.titulo}
                                         </h3>

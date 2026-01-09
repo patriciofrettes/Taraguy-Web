@@ -115,7 +115,7 @@ public partial class TaraguyDbContext : DbContext
             entity.ToTable("partidos");
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Cancha)
+            entity.Property(e => e.Lugar)
                 .HasMaxLength(100)
                 .HasColumnName("cancha");
             entity.Property(e => e.Disciplina)

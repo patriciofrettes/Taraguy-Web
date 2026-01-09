@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
-// URL BASE CORRECTA (Sin errores)
+// URL BASE LIMPIA
 const API_URL = "https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net";
 
 const Home = () => {
@@ -29,7 +29,6 @@ const Home = () => {
             .catch(err => console.error("Error cargando partidos:", err));
     }, []);
 
-    // Helper para arreglar rutas de imágenes
     const obtenerImagen = (ruta) => {
         if (!ruta) return "/img/default_news.png";
         if (ruta.startsWith("/uploads")) return `${API_URL}${ruta}`;
@@ -39,134 +38,66 @@ const Home = () => {
     return (
         <div className="font-sans text-gray-900 bg-white">
 
-            {/* === 1. SECCIÓN PRÓXIMO PARTIDO (Solo aparece si hay uno) === */}
+            {/* HEADER */}
+            <div className="bg-black text-white py-20 px-4 text-center">
+                <img src="/img/logo.png" alt="Logo" className="w-24 h-24 mx-auto mb-6 object-contain" onError={(e) => e.target.style.display = 'none'} />
+                <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4">Taraguy Rugby Club</h1>
+                <p className="text-xl text-gray-400 uppercase tracking-widest mb-8">Corrientes - Argentina</p>
+                <Link to="/tienda" className="bg-white text-black px-8 py-3 rounded-full font-black uppercase hover:bg-gray-200 transition">
+                    Ir a la Tienda
+                </Link>
+            </div>
+
+            {/* SECCIÓN PRÓXIMO PARTIDO */}
             {proximoPartido && (
-                <div className="bg-white border-b border-gray-200 py-12">
-                    <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-8">
-
-                        {/* Info del Torneo */}
-                        <div className="text-center md:text-left">
-                            <h3 className="text-gray-500 font-bold uppercase tracking-widest mb-1 text-sm">Proximo Encuentro</h3>
-                            <p className="text-3xl font-black uppercase text-gray-900 leading-none mb-1">{proximoPartido.torneo || "Torneo Oficial"}</p>
-                            <p className="text-gray-400 font-bold text-sm">
-                                {new Date(proximoPartido.fechaHora).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} • {new Date(proximoPartido.fechaHora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} Hs
-                            </p>
-                        </div>
-
-                        {/* VS y Escudos */}
-                        <div className="flex items-center gap-6 md:gap-12">
-                            <div className="text-center group">
-                                <img src="/img/logo.png" className="w-20 h-20 object-contain mx-auto mb-2 group-hover:scale-110 transition" alt="TRC" onError={(e) => e.target.src = "https://via.placeholder.com/80?text=TRC"} />
-                                <span className="font-black text-xl block">TRC</span>
-                            </div>
-
-                            <div className="text-5xl font-black text-gray-200 italic">VS</div>
-
-                            <div className="text-center group">
-                                {/* Si no hay escudo rival, ponemos uno genérico */}
-                                <div className="w-20 h-20 flex items-center justify-center mx-auto mb-2 bg-gray-100 rounded-full font-bold text-gray-400 border-2 border-dashed border-gray-300">
-                                    RIVAL
-                                </div>
-                                <span className="font-black text-xl block uppercase">{proximoPartido.rival}</span>
+                <div className="bg-yellow-400 py-8 px-4">
+                    <div className="max-w-4xl mx-auto text-center">
+                        <h2 className="text-xl font-black uppercase mb-4">Próximo Encuentro</h2>
+                        <div className="bg-black text-white p-6 rounded-xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
+                            <div className="text-3xl font-black uppercase">Taraguy RC</div>
+                            <div className="text-gray-400 font-bold text-xl">VS</div>
+                            <div className="text-3xl font-black uppercase">{proximoPartido.rival}</div>
+                            <div className="text-sm bg-gray-800 px-4 py-2 rounded">
+                                {new Date(proximoPartido.fechaHora).toLocaleString()} | {proximoPartido.lugar}
                             </div>
                         </div>
-
-                        {/* Botón Acción */}
-                        <Link to="/partidos" className="px-8 py-3 bg-black text-white font-bold uppercase hover:bg-gray-800 transition rounded shadow-lg text-sm tracking-wider">
-                            Ver Fixture
-                        </Link>
                     </div>
                 </div>
             )}
 
-            {/* === 2. GRILLA PRINCIPAL (Noticias + Banners) === */}
+            {/* SECCIÓN NOTICIAS */}
             <div className="max-w-7xl mx-auto px-4 py-16">
-                <div className="grid md:grid-cols-2 gap-12">
+                <h2 className="text-3xl font-black uppercase mb-8 border-l-8 border-black pl-4">Últimas Novedades</h2>
 
-                    {/* COLUMNA IZQUIERDA: NOTICIAS */}
-                    <div>
-                        <h2 className="text-3xl font-black uppercase mb-8 flex items-center gap-3">
-                            <span className="w-2 h-8 bg-black block"></span> Ultimas Novedades
-                        </h2>
-
-                        {ultimaNoticia ? (
-                            <div className="group cursor-pointer">
-                                <div className="overflow-hidden rounded-xl mb-6 shadow-sm border border-gray-100">
-                                    <img
-                                        src={obtenerImagen(ultimaNoticia.imagenUrl)}
-                                        alt={ultimaNoticia.titulo}
-                                        className="w-full h-80 object-cover group-hover:scale-105 transition duration-500"
-                                        onError={(e) => e.target.src = "https://via.placeholder.com/800x400?text=Noticia"}
-                                    />
-                                </div>
-                                <span className="text-gray-500 font-bold uppercase text-xs tracking-widest mb-2 block">
-                                    {new Date(ultimaNoticia.fechaPublicacion).toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                </span>
-                                <h3 className="text-3xl font-black leading-tight mb-4 group-hover:text-gray-600 transition">
-                                    {ultimaNoticia.titulo}
-                                </h3>
-                                <p className="text-gray-600 line-clamp-3 mb-4 leading-relaxed">
-                                    {ultimaNoticia.copete}
-                                </p>
-                                <Link to="/noticias" className="inline-block border-b-2 border-black font-bold uppercase hover:text-gray-600 hover:border-gray-600 transition pb-1 text-sm tracking-wider">
-                                    Leer nota completa
-                                </Link>
-                            </div>
-                        ) : (
-                            <div className="p-8 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-center">
-                                <p className="text-gray-400 font-bold">No hay noticias cargadas por el momento.</p>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* COLUMNA DERECHA: BANNERS (Tienda + Hockey) */}
-                    <div className="flex flex-col gap-8">
-
-                        {/* BANNER 1: TIENDA OFICIAL */}
-                        <div className="bg-gray-100 rounded-2xl p-8 flex items-center justify-between relative overflow-hidden group shadow-sm hover:shadow-md transition duration-300">
-                            <div className="relative z-10 w-2/3">
-                                <h3 className="text-2xl font-black uppercase mb-2 text-gray-900">Tienda Oficial</h3>
-                                <p className="text-gray-600 mb-6 text-sm">Camisetas, shorts y todo el merchandising oficial del club.</p>
-                                <Link to="/tienda" className="bg-black text-white px-6 py-3 font-bold uppercase rounded hover:bg-gray-800 transition text-xs tracking-widest inline-block">
-                                    Ir al Shop
-                                </Link>
-                            </div>
+                {ultimaNoticia ? (
+                    <div className="grid md:grid-cols-2 gap-12 items-start">
+                        <div className="overflow-hidden rounded-xl shadow-lg">
                             <img
-                                src="https://flash-sport.com.ar/wp-content/uploads/2021/03/Camiseta-Rugby-Taraguy-Titular-Frente.jpg"
-                                className="absolute right-[-30px] bottom-[-30px] w-56 rotate-12 group-hover:rotate-0 transition duration-500 drop-shadow-xl"
-                                alt="Camiseta"
-                                onError={(e) => e.target.style.display = 'none'}
+                                src={obtenerImagen(ultimaNoticia.imagenUrl)}
+                                alt={ultimaNoticia.titulo}
+                                className="w-full h-96 object-cover hover:scale-105 transition duration-700"
+                                onError={(e) => e.target.src = "https://via.placeholder.com/800x400?text=Noticia"}
                             />
                         </div>
-
-                        {/* BANNER 2: HOCKEY */}
-                        <div className="bg-black text-white rounded-2xl p-8 flex flex-col justify-center items-start relative overflow-hidden min-h-[250px] shadow-lg group">
-                            <img
-                                src="/img/hockey_banner.jpg"
-                                className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-40 transition transform group-hover:scale-105 duration-700"
-                                alt="Hockey Taraguy"
-                                onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = "https://images.unsplash.com/photo-1512719994953-eabf50895df7?q=80&w=2000&auto=format&fit=crop";
-                                }}
-                            />
-
-                            <div className="relative z-10">
-                                <h3 className="text-yellow-400 font-bold uppercase tracking-widest text-xs mb-1">Disciplina</h3>
-                                <h2 className="text-4xl font-black uppercase mb-4">Hockey</h2>
-                                <Link to="/partidos" className="inline-flex items-center gap-2 text-white font-bold hover:text-yellow-400 transition text-sm border-b border-transparent hover:border-yellow-400 pb-1">
-                                    Ver Fixture Femenino
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                                    </svg>
-                                </Link>
-                            </div>
+                        <div>
+                            <span className="text-gray-500 font-bold uppercase text-xs tracking-widest mb-2 block">
+                                {new Date(ultimaNoticia.fechaPublicacion).toLocaleDateString()}
+                            </span>
+                            <h3 className="text-4xl font-black leading-tight mb-4">{ultimaNoticia.titulo}</h3>
+                            <p className="text-gray-600 text-lg mb-6 leading-relaxed">
+                                {ultimaNoticia.copete}
+                            </p>
+                            <Link to="/noticias" className="bg-black text-white px-6 py-3 font-bold uppercase rounded hover:bg-gray-800 transition inline-block">
+                                Leer más
+                            </Link>
                         </div>
-
                     </div>
-                </div>
+                ) : (
+                    <div className="p-10 bg-gray-50 text-center border-2 border-dashed border-gray-300 rounded-xl">
+                        <p className="text-gray-500 font-bold">No hay noticias cargadas aún.</p>
+                    </div>
+                )}
             </div>
-
         </div>
     );
 };

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaraguyAPI.Models;
@@ -20,11 +19,20 @@ namespace TaraguyAPI.Controllers
             _context = context;
         }
 
-        // GET: Proximo partido
+        // GET: api/Partidos
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Partido>>> GetPartidos()
+        {
+            // Ordenamos por fecha (los más nuevos primero)
+            return await _context.Partidos.OrderBy(p => p.FechaHora).ToListAsync();
+        }
+
+        // GET: api/Partidos/proximo
         [HttpGet("proximo")]
         public async Task<ActionResult<Partido>> GetProximo()
         {
             var hoy = DateTime.Now;
+            // Busca el partido futuro más cercano (sin importar deporte, para el Home)
             var partido = await _context.Partidos
                 .Where(p => p.FechaHora > hoy)
                 .OrderBy(p => p.FechaHora)
@@ -34,49 +42,29 @@ namespace TaraguyAPI.Controllers
             return partido;
         }
 
-        // GET: Historial
-        [HttpGet("resultados")]
-        public async Task<ActionResult<IEnumerable<Partido>>> GetResultados()
-        {
-            var hoy = DateTime.Now;
-            return await _context.Partidos
-                .Where(p => p.FechaHora <= hoy)
-                .OrderByDescending(p => p.FechaHora)
-                .Take(5)
-                .ToListAsync();
-        }
-
-        // GET: Todos (Admin)
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Partido>>> GetPartidos()
-        {
-            return await _context.Partidos.OrderByDescending(p => p.FechaHora).ToListAsync();
-        }
-
-        // POST: Crear Partido (Protegido)
+        // POST: api/Partidos
         [HttpPost]
         public async Task<ActionResult<Partido>> PostPartido(Partido partido)
         {
             try
             {
-                // Validación básica
-                if (string.IsNullOrEmpty(partido.Rival)) return BadRequest("El rival es obligatorio");
+                if (string.IsNullOrEmpty(partido.Rival)) return BadRequest("Falta el rival");
 
-                // Asegurar que la fecha sea UTC si Azure da problemas de zona horaria
-                if (partido.FechaHora == default) partido.FechaHora = DateTime.Now;
+                // Asegurar valores por defecto si vienen vacíos
+                if (string.IsNullOrEmpty(partido.Disciplina)) partido.Disciplina = "Rugby";
+                if (string.IsNullOrEmpty(partido.Categoria)) partido.Categoria = "Primera";
 
                 _context.Partidos.Add(partido);
                 await _context.SaveChangesAsync();
-
-                return CreatedAtAction("GetPartido", new { id = partido.Id }, partido);
+                return CreatedAtAction("GetPartidos", new { id = partido.Id }, partido);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Error al guardar partido: " + ex.Message);
+                return StatusCode(500, ex.Message);
             }
         }
 
-        // DELETE: Borrar Partido
+        // DELETE: api/Partidos/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePartido(int id)
         {
@@ -88,13 +76,14 @@ namespace TaraguyAPI.Controllers
             return NoContent();
         }
 
-        // Helper
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Partido>> GetPartido(int id)
+        // PUT: api/Partidos/5 (Para cargar resultados)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutPartido(int id, Partido partido)
         {
-            var partido = await _context.Partidos.FindAsync(id);
-            if (partido == null) return NotFound();
-            return partido;
+            if (id != partido.Id) return BadRequest();
+            _context.Entry(partido).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+            return NoContent();
         }
     }
 }
