@@ -227,12 +227,13 @@ const PanelNoticias = () => {
     );
 };
 
-/* --- 3. PARTIDOS (ACTUALIZADO CON DEPORTES Y CATEGORÍAS) --- */
+/* --- 3. PARTIDOS (AHORA CON SUBIDA DE ESCUDO 📸) --- */
 const PanelPartidos = () => {
     const [partidos, setPartidos] = useState([]);
+    // Estado inicial incluyendo imagen
     const [form, setForm] = useState({
         rival: '', fecha: '', lugar: 'Local', resultado: '',
-        disciplina: 'Rugby', categoria: 'Primera', escudoRivalUrl: ''
+        disciplina: 'Rugby', categoria: 'Primera', imagen: null
     });
 
     const cargar = async () => {
@@ -242,16 +243,41 @@ const PanelPartidos = () => {
 
     useEffect(() => { cargar(); }, []);
 
-    const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+    // Manejador modificado para soportar archivos
+    const handleChange = (e) => {
+        const { name, value, files } = e.target;
+        setForm({ ...form, [name]: files ? files[0] : value });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Creamos FormData para poder enviar el archivo
+        const formData = new FormData();
+        formData.append('rival', form.rival);
+        formData.append('fecha', form.fecha);
+        formData.append('lugar', form.lugar);
+        formData.append('disciplina', form.disciplina);
+        formData.append('categoria', form.categoria);
+        if (form.resultado) formData.append('resultado', form.resultado);
+        if (form.imagen) formData.append('imagen', form.imagen); // Adjuntamos foto si hay
+
         try {
-            await axios.post(`${API_URL}/api/Partidos`, form);
+            // Importante: header multipart/form-data
+            await axios.post(`${API_URL}/api/Partidos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             alert('Partido agendado');
-            setForm({ ...form, rival: '', fecha: '', resultado: '', escudoRivalUrl: '' }); // Limpiar campos no-default
+
+            // Limpiamos el form
+            setForm({ rival: '', fecha: '', lugar: 'Local', resultado: '', disciplina: 'Rugby', categoria: 'Primera', imagen: null });
+            // Limpiamos el input file visualmente
+            const fileInput = document.getElementById('fileInputPartido');
+            if (fileInput) fileInput.value = "";
+
             cargar();
-        } catch (error) { alert("Error al guardar."); }
+        } catch (error) {
+            console.error(error);
+            alert("Error al guardar.");
+        }
     };
 
     const borrar = async (id) => {
@@ -261,7 +287,6 @@ const PanelPartidos = () => {
     const cargarResultado = async (p) => {
         const res = prompt("Ingresá el resultado (Ej: 20-15):", p.resultado || "");
         if (res !== null) {
-            // Enviamos todo el objeto partido actualizado con el resultado nuevo
             await axios.put(`${API_URL}/api/Partidos/${p.id}`, { ...p, resultado: res });
             cargar();
         }
@@ -303,9 +328,17 @@ const PanelPartidos = () => {
                         <option>Local</option><option>Visitante</option>
                     </select>
                 </div>
+
+                {/* CAMPO DE ARCHIVO (NUEVO) */}
                 <div>
-                    <label className="text-xs font-bold uppercase block mb-1">Escudo URL (Opcional)</label>
-                    <input name="escudoRivalUrl" placeholder="https://..." value={form.escudoRivalUrl} onChange={handleChange} className="w-full border p-2 rounded" />
+                    <label className="text-xs font-bold uppercase block mb-1">Escudo Rival (Imagen)</label>
+                    <input
+                        id="fileInputPartido"
+                        type="file"
+                        name="imagen"
+                        onChange={handleChange}
+                        className="w-full bg-white border p-1 rounded text-sm"
+                    />
                 </div>
 
                 <button type="submit" className="col-span-1 md:col-span-3 bg-black text-white py-3 rounded font-bold uppercase hover:bg-gray-800 transition">Guardar Partido</button>
@@ -315,16 +348,25 @@ const PanelPartidos = () => {
             <ul className="space-y-2">
                 {partidos.map(p => (
                     <li key={p.id} className="border p-4 rounded bg-white shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div className="flex-grow">
-                            <div className="flex gap-2 mb-1">
-                                <span className={`text-[10px] font-bold px-2 py-1 rounded text-white ${p.disciplina === 'Rugby' ? 'bg-blue-900' : 'bg-pink-600'}`}>{p.disciplina}</span>
-                                <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-200 text-gray-700">{p.categoria}</span>
+                        <div className="flex-grow flex items-center gap-4">
+                            {/* Mostrar mini escudo si existe */}
+                            {p.escudoRivalUrl ? (
+                                <img src={`${API_URL}${p.escudoRivalUrl}`} className="w-10 h-10 object-contain" alt="escudo" />
+                            ) : (
+                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-500">VS</div>
+                            )}
+
+                            <div>
+                                <div className="flex gap-2 mb-1">
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded text-white ${p.disciplina === 'Rugby' ? 'bg-blue-900' : 'bg-pink-600'}`}>{p.disciplina}</span>
+                                    <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-200 text-gray-700">{p.categoria}</span>
+                                </div>
+                                <span className="text-xs font-bold text-gray-500 uppercase block mb-1">
+                                    {new Date(p.fechaHora).toLocaleDateString()} • {new Date(p.fechaHora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <h4 className="font-black uppercase text-xl">Taraguy vs {p.rival}</h4>
+                                <p className="text-sm font-bold text-green-700">{p.resultado || "Por jugar"}</p>
                             </div>
-                            <span className="text-xs font-bold text-gray-500 uppercase block mb-1">
-                                {new Date(p.fechaHora).toLocaleDateString()} • {new Date(p.fechaHora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <h4 className="font-black uppercase text-xl">Taraguy vs {p.rival}</h4>
-                            <p className="text-sm font-bold text-green-700">{p.resultado || "Por jugar"}</p>
                         </div>
                         <div className="flex gap-2">
                             <button onClick={() => cargarResultado(p)} className="text-blue-600 font-bold text-xs border border-blue-200 px-3 py-2 rounded hover:bg-blue-50">

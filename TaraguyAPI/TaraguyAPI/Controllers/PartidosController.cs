@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaraguyAPI.Models;
@@ -13,17 +16,18 @@ namespace TaraguyAPI.Controllers
     public class PartidosController : ControllerBase
     {
         private readonly TaraguyDbContext _context;
+        private readonly IWebHostEnvironment _env; // Para guardar archivos
 
-        public PartidosController(TaraguyDbContext context)
+        public PartidosController(TaraguyDbContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
 
         // GET: api/Partidos
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Partido>>> GetPartidos()
         {
-            // Ordenamos por fecha (los más nuevos primero)
             return await _context.Partidos.OrderBy(p => p.FechaHora).ToListAsync();
         }
 
@@ -32,7 +36,6 @@ namespace TaraguyAPI.Controllers
         public async Task<ActionResult<Partido>> GetProximo()
         {
             var hoy = DateTime.Now;
-            // Busca el partido futuro más cercano (sin importar deporte, para el Home)
             var partido = await _context.Partidos
                 .Where(p => p.FechaHora > hoy)
                 .OrderBy(p => p.FechaHora)
@@ -42,25 +45,54 @@ namespace TaraguyAPI.Controllers
             return partido;
         }
 
-        // POST: api/Partidos
+        // POST: api/Partidos (AHORA CON SUBIDA DE FOTOS)
         [HttpPost]
-        public async Task<ActionResult<Partido>> PostPartido(Partido partido)
+        public async Task<ActionResult<Partido>> PostPartido([FromForm] PartidoDto dto)
         {
             try
             {
-                if (string.IsNullOrEmpty(partido.Rival)) return BadRequest("Falta el rival");
+                // 1. Validaciones
+                if (string.IsNullOrEmpty(dto.Rival)) return BadRequest("Falta el rival");
 
-                // Asegurar valores por defecto si vienen vacíos
-                if (string.IsNullOrEmpty(partido.Disciplina)) partido.Disciplina = "Rugby";
-                if (string.IsNullOrEmpty(partido.Categoria)) partido.Categoria = "Primera";
+                // 2. Manejo de la Imagen (Si subieron una)
+                string rutaImagen = null;
+                if (dto.Imagen != null)
+                {
+                    string webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
+                    string folder = Path.Combine(webRootPath, "wwwroot", "uploads");
+
+                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+                    string nombreArchivo = Guid.NewGuid().ToString() + Path.GetExtension(dto.Imagen.FileName);
+                    string rutaCompleta = Path.Combine(folder, nombreArchivo);
+
+                    using (var stream = new FileStream(rutaCompleta, FileMode.Create))
+                    {
+                        await dto.Imagen.CopyToAsync(stream);
+                    }
+                    rutaImagen = "/uploads/" + nombreArchivo;
+                }
+
+                // 3. Crear el objeto
+                var partido = new Partido
+                {
+                    Rival = dto.Rival,
+                    FechaHora = dto.Fecha,
+                    Lugar = dto.Lugar,
+                    Resultado = dto.Resultado,
+                    Disciplina = dto.Disciplina ?? "Rugby",
+                    Categoria = dto.Categoria ?? "Primera",
+                    EscudoRivalUrl = rutaImagen // Guardamos la ruta del archivo o null
+                };
 
                 _context.Partidos.Add(partido);
                 await _context.SaveChangesAsync();
+
                 return CreatedAtAction("GetPartidos", new { id = partido.Id }, partido);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                return StatusCode(500, "Error al guardar: " + ex.Message);
             }
         }
 
@@ -76,7 +108,7 @@ namespace TaraguyAPI.Controllers
             return NoContent();
         }
 
-        // PUT: api/Partidos/5 (Para cargar resultados)
+        // PUT: Actualizar resultado
         [HttpPut("{id}")]
         public async Task<IActionResult> PutPartido(int id, Partido partido)
         {
@@ -85,5 +117,17 @@ namespace TaraguyAPI.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+    }
+
+    // DTO PARA RECIBIR DATOS + ARCHIVO
+    public class PartidoDto
+    {
+        public string Rival { get; set; }
+        public DateTime Fecha { get; set; }
+        public string Lugar { get; set; }
+        public string? Resultado { get; set; }
+        public string? Disciplina { get; set; }
+        public string? Categoria { get; set; }
+        public IFormFile? Imagen { get; set; } // Acá llega la foto
     }
 }
