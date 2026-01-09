@@ -16,7 +16,7 @@ namespace TaraguyAPI.Controllers
     public class PartidosController : ControllerBase
     {
         private readonly TaraguyDbContext _context;
-        private readonly IWebHostEnvironment _env; // Para guardar archivos
+        private readonly IWebHostEnvironment _env;
 
         public PartidosController(TaraguyDbContext context, IWebHostEnvironment env)
         {
@@ -24,42 +24,25 @@ namespace TaraguyAPI.Controllers
             _env = env;
         }
 
-        // GET: api/Partidos
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Partido>>> GetPartidos()
         {
             return await _context.Partidos.OrderBy(p => p.FechaHora).ToListAsync();
         }
 
-        // GET: api/Partidos/proximo
-        [HttpGet("proximo")]
-        public async Task<ActionResult<Partido>> GetProximo()
-        {
-            var hoy = DateTime.Now;
-            var partido = await _context.Partidos
-                .Where(p => p.FechaHora > hoy)
-                .OrderBy(p => p.FechaHora)
-                .FirstOrDefaultAsync();
-
-            if (partido == null) return NoContent();
-            return partido;
-        }
-
-        // POST: api/Partidos (AHORA CON SUBIDA DE FOTOS)
         [HttpPost]
         public async Task<ActionResult<Partido>> PostPartido([FromForm] PartidoDto dto)
         {
             try
             {
-                // 1. Validaciones
                 if (string.IsNullOrEmpty(dto.Rival)) return BadRequest("Falta el rival");
 
-                // 2. Manejo de la Imagen (Si subieron una)
                 string rutaImagen = null;
                 if (dto.Imagen != null)
                 {
                     string webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
-                    string folder = Path.Combine(webRootPath, "wwwroot", "uploads");
+                    // Guardamos en 'img' para que sea igual que productos
+                    string folder = Path.Combine(webRootPath, "wwwroot", "img");
 
                     if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
@@ -70,10 +53,9 @@ namespace TaraguyAPI.Controllers
                     {
                         await dto.Imagen.CopyToAsync(stream);
                     }
-                    rutaImagen = "/uploads/" + nombreArchivo;
+                    rutaImagen = "/img/" + nombreArchivo;
                 }
 
-                // 3. Crear el objeto
                 var partido = new Partido
                 {
                     Rival = dto.Rival,
@@ -82,7 +64,7 @@ namespace TaraguyAPI.Controllers
                     Resultado = dto.Resultado,
                     Disciplina = dto.Disciplina ?? "Rugby",
                     Categoria = dto.Categoria ?? "Primera",
-                    EscudoRivalUrl = rutaImagen // Guardamos la ruta del archivo o null
+                    EscudoRivalUrl = rutaImagen
                 };
 
                 _context.Partidos.Add(partido);
@@ -96,19 +78,6 @@ namespace TaraguyAPI.Controllers
             }
         }
 
-        // DELETE: api/Partidos/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletePartido(int id)
-        {
-            var partido = await _context.Partidos.FindAsync(id);
-            if (partido == null) return NotFound();
-
-            _context.Partidos.Remove(partido);
-            await _context.SaveChangesAsync();
-            return NoContent();
-        }
-
-        // PUT: Actualizar resultado
         [HttpPut("{id}")]
         public async Task<IActionResult> PutPartido(int id, Partido partido)
         {
@@ -117,9 +86,18 @@ namespace TaraguyAPI.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePartido(int id)
+        {
+            var partido = await _context.Partidos.FindAsync(id);
+            if (partido == null) return NotFound();
+            _context.Partidos.Remove(partido);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
     }
 
-    // DTO PARA RECIBIR DATOS + ARCHIVO
     public class PartidoDto
     {
         public string Rival { get; set; }
@@ -128,6 +106,6 @@ namespace TaraguyAPI.Controllers
         public string? Resultado { get; set; }
         public string? Disciplina { get; set; }
         public string? Categoria { get; set; }
-        public IFormFile? Imagen { get; set; } // Acá llega la foto
+        public IFormFile? Imagen { get; set; }
     }
 }

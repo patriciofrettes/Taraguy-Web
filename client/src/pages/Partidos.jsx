@@ -27,14 +27,18 @@ const Partidos = () => {
         setPartidosFiltrados(filtrados);
     }, [todosLosPartidos, disciplina, categoria]);
 
-    // 🔧 FUNCIÓN QUE ARREGLA LA FOTO DEL ESCUDO 🔧
+    // 🔧 FUNCIÓN CORREGIDA PARA ESCUDOS 🔧
     const obtenerEscudo = (ruta) => {
         if (!ruta) return null;
-        // Si la ruta empieza con /uploads, le pegamos la URL del servidor
-        if (ruta.startsWith("/uploads")) {
+
+        // Si ya tiene http (es de internet), devolver tal cual
+        if (ruta.startsWith("http")) return ruta;
+
+        // Si la ruta empieza con /img o /uploads, le pegamos la URL del servidor
+        if (ruta.startsWith("/img") || ruta.startsWith("/uploads")) {
             return `${API_URL}${ruta}`;
         }
-        // Si es un link externo (http...), lo dejamos igual
+
         return ruta;
     };
 
@@ -159,7 +163,7 @@ const Partidos = () => {
                                 .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
                                 .map(p => {
                                     const yaJugo = p.resultado !== null && p.resultado !== "";
-                                    const escudoUrl = obtenerEscudo(p.escudoRivalUrl); // Usamos la función correctora
+                                    const escudoUrl = obtenerEscudo(p.escudoRivalUrl);
 
                                     return (
                                         <div key={p.id} className="border-l-4 border-black pl-4 py-2">

@@ -44,22 +44,20 @@ namespace TaraguyAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<Producto>> PostProducto([FromForm] ProductoDto dto)
         {
-            // BLOQUE DE SEGURIDAD (TRY-CATCH)
             try
             {
                 // Validaciones básicas
                 if (string.IsNullOrWhiteSpace(dto.Nombre)) return BadRequest("El nombre es obligatorio.");
                 if (dto.Precio <= 0) return BadRequest("El precio debe ser mayor a 0.");
 
-                // 1. Manejo de la Imagen (CORREGIDO PARA AZURE)
+                // 1. Manejo de la Imagen (MODIFICADO PARA USAR CARPETA 'img' 📸)
                 string rutaImagen = null;
                 if (dto.Imagen != null)
                 {
-                    // Truco: Si WebRootPath es nulo (pasa en Azure), usamos ContentRootPath
                     string webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
 
-                    // Aseguramos que la carpeta exista dentro de wwwroot
-                    string folder = Path.Combine(webRootPath, "wwwroot", "uploads");
+                    // CAMBIO AQUÍ: Usamos "img" en lugar de "uploads"
+                    string folder = Path.Combine(webRootPath, "wwwroot", "img");
 
                     // Si no existe la carpeta, la creamos
                     if (!Directory.Exists(folder))
@@ -76,7 +74,8 @@ namespace TaraguyAPI.Controllers
                         await dto.Imagen.CopyToAsync(stream);
                     }
 
-                    rutaImagen = "/uploads/" + nombreArchivo;
+                    // CAMBIO AQUÍ: La URL empieza con /img/
+                    rutaImagen = "/img/" + nombreArchivo;
                 }
 
                 // 2. Crear el objeto
@@ -89,25 +88,71 @@ namespace TaraguyAPI.Controllers
                     CategoriaProducto = dto.CategoriaProducto,
                     Activo = dto.Activo,
                     Talles = dto.Talles,
+                    // Si no hay foto, usa una por defecto de la carpeta img
                     ImagenUrl = rutaImagen ?? "/img/default_product.png"
                 };
 
                 _context.Productos.Add(nuevoProducto);
-
-                // Aquí es donde suele explotar si las columnas no coinciden
                 await _context.SaveChangesAsync();
 
                 return CreatedAtAction("GetProducto", new { id = nuevoProducto.Id }, nuevoProducto);
             }
             catch (Exception ex)
             {
-                // ESTO ES ORO: Devuelve el error real (incluyendo detalles internos)
                 var mensajeError = "Error interno: " + ex.Message;
                 if (ex.InnerException != null)
                 {
                     mensajeError += " | Detalle: " + ex.InnerException.Message;
                 }
                 return StatusCode(500, mensajeError);
+            }
+        }
+
+        // PUT: api/Productos/5 (EDITAR) - AGREGADO PARA QUE FUNCIONE EL ADMIN
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutProducto(int id, [FromForm] ProductoDto dto)
+        {
+            var productoExistente = await _context.Productos.FindAsync(id);
+            if (productoExistente == null) return NotFound();
+
+            try
+            {
+                // Actualizamos datos básicos
+                productoExistente.Nombre = dto.Nombre;
+                productoExistente.Descripcion = dto.Descripcion;
+                productoExistente.Precio = dto.Precio;
+                productoExistente.Stock = dto.Stock;
+                productoExistente.CategoriaProducto = dto.CategoriaProducto;
+                productoExistente.Activo = dto.Activo;
+                productoExistente.Talles = dto.Talles;
+
+                // Si viene una imagen NUEVA, la guardamos en la carpeta 'img'
+                if (dto.Imagen != null)
+                {
+                    string webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
+                    string folder = Path.Combine(webRootPath, "wwwroot", "img");
+
+                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+                    string nombreArchivo = Guid.NewGuid().ToString() + Path.GetExtension(dto.Imagen.FileName);
+                    string rutaCompleta = Path.Combine(folder, nombreArchivo);
+
+                    using (var stream = new FileStream(rutaCompleta, FileMode.Create))
+                    {
+                        await dto.Imagen.CopyToAsync(stream);
+                    }
+
+                    productoExistente.ImagenUrl = "/img/" + nombreArchivo;
+                }
+
+                _context.Entry(productoExistente).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Error al actualizar: " + ex.Message);
             }
         }
 

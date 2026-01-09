@@ -1,39 +1,35 @@
+Ôªøusing Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ---------------------------------------------------------
-// 1. SOLUCI”N AL ERROR DE FECHA (DateTime)
-// Esta lÌnea m·gica arregla el conflicto de zonas horarias entre .NET y Postgres
+// 1. ARREGLO DE FECHAS (PostgreSQL vs .NET)
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-// ---------------------------------------------------------
 
-// 2. ConfiguraciÛn de la Base de Datos
+// 2. BASE DE DATOS
 var connectionString = builder.Configuration.GetConnectionString("CadenaConexionTaraguy");
 builder.Services.AddDbContext<TaraguyAPI.Models.TaraguyDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// 3. SERVICIOS CORS
+// 3. CORS (Permisos para que React se conecte)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PoliticaTaraguy", app =>
     {
-        app.AllowAnyOrigin()
-           .AllowAnyHeader()
-           .AllowAnyMethod();
+        app.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
     });
 });
 
-// Add services to the container.
 builder.Services.AddControllers();
-
-// 4. CONFIGURACI”N DE SWAGGER
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// CONFIGURACI√ìN DE DESARROLLO
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -42,16 +38,32 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// ---------------------------------------------------------
-// 5. SOLUCI”N PARA VER IM¡GENES (UseStaticFiles)
-// Esto permite que el navegador vea las fotos de la carpeta wwwroot
+// -----------------------------------------------------------------------------
+// üì∑ CONFIGURACI√ìN DE IM√ÅGENES (CARPETA "img") üì∑
+// -----------------------------------------------------------------------------
+
+// A. Habilitar wwwroot por defecto
 app.UseStaticFiles();
-// ---------------------------------------------------------
+
+// B. Configurar expl√≠citamente la carpeta "img" para asegurar acceso en Azure
+var imgFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "img");
+
+// Crear la carpeta si no existe (Azure a veces no la crea sola)
+if (!Directory.Exists(imgFolderPath))
+{
+    Directory.CreateDirectory(imgFolderPath);
+}
+
+// C. Mapear la ruta URL "/img" a la carpeta f√≠sica
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(imgFolderPath),
+    RequestPath = "/img"
+});
+// -----------------------------------------------------------------------------
 
 app.UseCors("PoliticaTaraguy");
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
