@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// URL BASE
 const API_URL = "https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net";
 
 const Partidos = () => {
@@ -10,7 +11,7 @@ const Partidos = () => {
     // Filtros
     const [disciplina, setDisciplina] = useState('Rugby');
     const [categoria, setCategoria] = useState('Primera');
-    const [mesActual, setMesActual] = useState(new Date()); // Para navegar el calendario
+    const [mesActual, setMesActual] = useState(new Date());
 
     useEffect(() => {
         axios.get(`${API_URL}/api/Partidos`)
@@ -18,7 +19,6 @@ const Partidos = () => {
             .catch(e => console.error(e));
     }, []);
 
-    // Cada vez que cambian los filtros o los datos, actualizamos la lista
     useEffect(() => {
         const filtrados = todosLosPartidos.filter(p =>
             p.disciplina === disciplina &&
@@ -27,12 +27,23 @@ const Partidos = () => {
         setPartidosFiltrados(filtrados);
     }, [todosLosPartidos, disciplina, categoria]);
 
-    // --- LÓGICA DEL CALENDARIO ---
+    // 🔧 FUNCIÓN QUE ARREGLA LA FOTO DEL ESCUDO 🔧
+    const obtenerEscudo = (ruta) => {
+        if (!ruta) return null;
+        // Si la ruta empieza con /uploads, le pegamos la URL del servidor
+        if (ruta.startsWith("/uploads")) {
+            return `${API_URL}${ruta}`;
+        }
+        // Si es un link externo (http...), lo dejamos igual
+        return ruta;
+    };
+
+    // --- LÓGICA CALENDARIO ---
     const getDiasEnMes = (fecha) => {
         const year = fecha.getFullYear();
         const month = fecha.getMonth();
         const dias = new Date(year, month + 1, 0).getDate();
-        const primerDiaSemana = new Date(year, month, 1).getDay(); // 0 = Domingo
+        const primerDiaSemana = new Date(year, month, 1).getDay();
         return { dias, primerDiaSemana };
     };
 
@@ -44,7 +55,6 @@ const Partidos = () => {
         setMesActual(new Date(mesActual.getFullYear(), mesActual.getMonth() + offset, 1));
     };
 
-    // Función para ver si hay partido un día específico
     const getPartidosDelDia = (dia) => {
         return partidosFiltrados.filter(p => {
             const fechaP = new Date(p.fechaHora);
@@ -59,10 +69,8 @@ const Partidos = () => {
             <div className="max-w-6xl mx-auto">
                 <h1 className="text-4xl font-black text-center mb-8 uppercase tracking-tighter">Fixture y Resultados</h1>
 
-                {/* 1. FILTROS PRINCIPALES */}
+                {/* FILTROS */}
                 <div className="bg-white p-6 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row gap-6 justify-center items-center">
-
-                    {/* Switch Deporte */}
                     <div className="flex bg-gray-100 rounded-full p-1">
                         <button
                             onClick={() => setDisciplina('Rugby')}
@@ -78,7 +86,6 @@ const Partidos = () => {
                         </button>
                     </div>
 
-                    {/* Dropdown Categoría */}
                     <select
                         value={categoria}
                         onChange={(e) => setCategoria(e.target.value)}
@@ -99,7 +106,7 @@ const Partidos = () => {
 
                 <div className="grid lg:grid-cols-3 gap-8">
 
-                    {/* 2. EL CALENDARIO (Izquierda) */}
+                    {/* CALENDARIO */}
                     <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
                         <div className="flex justify-between items-center mb-6">
                             <button onClick={() => cambiarMes(-1)} className="font-bold text-2xl hover:bg-gray-100 w-10 h-10 rounded-full">&lt;</button>
@@ -109,12 +116,10 @@ const Partidos = () => {
                             <button onClick={() => cambiarMes(1)} className="font-bold text-2xl hover:bg-gray-100 w-10 h-10 rounded-full">&gt;</button>
                         </div>
 
-                        {/* Grilla Semanal */}
                         <div className="grid grid-cols-7 text-center font-bold text-gray-400 text-xs uppercase mb-2">
                             <div>Dom</div><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div>
                         </div>
 
-                        {/* Grilla Días */}
                         <div className="grid grid-cols-7 gap-2">
                             {espaciosVacios.map(i => <div key={`empty-${i}`}></div>)}
 
@@ -131,7 +136,6 @@ const Partidos = () => {
                                     `}>
                                         <span className={`font-bold ${esHoy ? 'text-yellow-600' : 'text-gray-400'}`}>{dia}</span>
 
-                                        {/* Puntito indicador o mini escudo */}
                                         <div className="flex flex-col gap-1 overflow-hidden">
                                             {partidosDia.map(p => (
                                                 <div key={p.id} className="text-[10px] bg-black text-white px-1 rounded truncate font-bold" title={p.rival}>
@@ -145,7 +149,7 @@ const Partidos = () => {
                         </div>
                     </div>
 
-                    {/* 3. LISTA DE DETALLES (Derecha - Próximos y Resultados del Mes) */}
+                    {/* LISTA DETALLES */}
                     <div className="bg-white rounded-xl shadow-lg p-6 h-fit">
                         <h3 className="font-black uppercase text-xl mb-4 border-b pb-2">Partidos del Mes</h3>
 
@@ -155,6 +159,7 @@ const Partidos = () => {
                                 .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
                                 .map(p => {
                                     const yaJugo = p.resultado !== null && p.resultado !== "";
+                                    const escudoUrl = obtenerEscudo(p.escudoRivalUrl); // Usamos la función correctora
 
                                     return (
                                         <div key={p.id} className="border-l-4 border-black pl-4 py-2">
@@ -163,10 +168,12 @@ const Partidos = () => {
                                             </div>
 
                                             <div className="flex items-center gap-3 mb-2">
-                                                <img src="/img/logo.png" className="w-8 h-8 object-contain" />
+                                                <img src="/img/logo.png" className="w-8 h-8 object-contain" alt="Taraguy" />
                                                 <span className="font-bold text-sm">VS</span>
-                                                {p.escudoRivalUrl ? (
-                                                    <img src={p.escudoRivalUrl} className="w-8 h-8 object-contain" />
+
+                                                {/* ESCUDO CORREGIDO 👇 */}
+                                                {escudoUrl ? (
+                                                    <img src={escudoUrl} className="w-8 h-8 object-contain" alt={p.rival} onError={(e) => e.target.style.display = 'none'} />
                                                 ) : (
                                                     <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center font-bold text-xs">?</div>
                                                 )}
