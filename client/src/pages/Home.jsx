@@ -1,103 +1,88 @@
-import { useEffect, useState } from 'react';
+Ôªøimport { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
-// URL BASE LIMPIA
+// URL BASE
 const API_URL = "https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net";
 
 const Home = () => {
-    const [ultimaNoticia, setUltimaNoticia] = useState(null);
-    const [proximoPartido, setProximoPartido] = useState(null);
+    const [noticias, setNoticias] = useState([]);
+    const [cargando, setCargando] = useState(true);
 
     useEffect(() => {
-        // 1. Cargar la ˙ltima noticia
-        axios.get(`${API_URL}/api/Noticias/ultimas`)
-            .then(res => {
-                if (res.data && res.data.length > 0) {
-                    setUltimaNoticia(res.data[0]);
-                }
-            })
-            .catch(err => console.error("Error cargando noticias:", err));
-
-        // 2. Cargar el prÛximo partido
-        axios.get(`${API_URL}/api/Partidos/proximo`)
-            .then(res => {
-                if (res.data) {
-                    setProximoPartido(res.data);
-                }
-            })
-            .catch(err => console.error("Error cargando partidos:", err));
+        const cargarNoticias = async () => {
+            try {
+                // Traemos las noticias de la API
+                const response = await axios.get(`${API_URL}/api/Noticias`);
+                // Ordenamos por fecha (las m√°s recientes primero) y tomamos las √∫ltimas 3
+                const ultimasNoticias = response.data
+                    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+                    .slice(0, 3);
+                setNoticias(ultimasNoticias);
+            } catch (error) {
+                console.error("Error cargando noticias en Home:", error);
+            } finally {
+                setCargando(false);
+            }
+        };
+        cargarNoticias();
     }, []);
 
-    const obtenerImagen = (ruta) => {
-        if (!ruta) return "/img/default_news.png";
-        if (ruta.startsWith("/uploads")) return `${API_URL}${ruta}`;
-        return ruta;
+    const getImagenUrl = (url) => {
+        if (!url) return "/img/default_news.jpg";
+        if (url.startsWith("http")) return url;
+        return `${API_URL}${url}`;
     };
 
     return (
-        <div className="font-sans text-gray-900 bg-white">
-
-            {/* HEADER */}
-            <div className="bg-black text-white py-20 px-4 text-center">
-                <img src="/img/logo.png" alt="Logo" className="w-24 h-24 mx-auto mb-6 object-contain" onError={(e) => e.target.style.display = 'none'} />
-                <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4">Taraguy Rugby Club</h1>
-                <p className="text-xl text-gray-400 uppercase tracking-widest mb-8">Corrientes - Argentina</p>
-                <Link to="/tienda" className="bg-white text-black px-8 py-3 rounded-full font-black uppercase hover:bg-gray-200 transition">
-                    Ir a la Tienda
-                </Link>
-            </div>
-
-            {/* SECCI”N PR”XIMO PARTIDO */}
-            {proximoPartido && (
-                <div className="bg-yellow-400 py-8 px-4">
-                    <div className="max-w-4xl mx-auto text-center">
-                        <h2 className="text-xl font-black uppercase mb-4">PrÛximo Encuentro</h2>
-                        <div className="bg-black text-white p-6 rounded-xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
-                            <div className="text-3xl font-black uppercase">Taraguy RC</div>
-                            <div className="text-gray-400 font-bold text-xl">VS</div>
-                            <div className="text-3xl font-black uppercase">{proximoPartido.rival}</div>
-                            <div className="text-sm bg-gray-800 px-4 py-2 rounded">
-                                {new Date(proximoPartido.fechaHora).toLocaleString()} | {proximoPartido.lugar}
-                            </div>
-                        </div>
-                    </div>
+        <div className="bg-white">
+            {/* Secci√≥n de Noticias */}
+            <section className="py-16 px-4 max-w-7xl mx-auto">
+                <div className="flex items-center gap-4 mb-10">
+                    <div className="w-2 h-10 bg-black"></div>
+                    <h2 className="text-4xl font-black uppercase tracking-tighter italic">√öltimas Novedades</h2>
                 </div>
-            )}
 
-            {/* SECCI”N NOTICIAS */}
-            <div className="max-w-7xl mx-auto px-4 py-16">
-                <h2 className="text-3xl font-black uppercase mb-8 border-l-8 border-black pl-4">⁄ltimas Novedades</h2>
+                {cargando ? (
+                    <div className="text-center py-20 text-gray-400 font-bold uppercase tracking-widest">Actualizando novedades...</div>
+                ) : noticias.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {noticias.map((noticia) => (
+                            <div key={noticia.id} className="group cursor-pointer">
+                                <div className="h-64 overflow-hidden rounded-xl mb-4 shadow-lg border border-gray-100">
+                                    <img
+                                        src={getImagenUrl(noticia.imagenUrl)}
+                                        alt={noticia.titulo}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition duration-700"
+                                        onError={(e) => e.target.src = "/img/default_news.jpg"}
+                                    />
+                                </div>
+                                <span className="text-xs font-bold text-yellow-600 uppercase tracking-widest">
+                                    {new Date(noticia.fecha).toLocaleDateString()}
+                                </span>
+                                <h3 className="text-xl font-black uppercase mt-2 mb-3 leading-tight group-hover:text-yellow-600 transition">
+                                    {noticia.titulo}
+                                </h3>
+                                <p className="text-gray-500 text-sm line-clamp-2 mb-4">
+                                    {noticia.copete || noticia.contenido.substring(0, 100) + "..."}
+                                </p>
 
-                {ultimaNoticia ? (
-                    <div className="grid md:grid-cols-2 gap-12 items-start">
-                        <div className="overflow-hidden rounded-xl shadow-lg">
-                            <img
-                                src={obtenerImagen(ultimaNoticia.imagenUrl)}
-                                alt={ultimaNoticia.titulo}
-                                className="w-full h-96 object-cover hover:scale-105 transition duration-700"
-                                onError={(e) => e.target.src = "https://via.placeholder.com/800x400?text=Noticia"}
-                            />
-                        </div>
-                        <div>
-                            <span className="text-gray-500 font-bold uppercase text-xs tracking-widest mb-2 block">
-                                {new Date(ultimaNoticia.fechaPublicacion).toLocaleDateString()}
-                            </span>
-                            <h3 className="text-4xl font-black leading-tight mb-4">{ultimaNoticia.titulo}</h3>
-                            <p className="text-gray-600 text-lg mb-6 leading-relaxed">
-                                {ultimaNoticia.copete}
-                            </p>
-                            <Link to="/noticias" className="bg-black text-white px-6 py-3 font-bold uppercase rounded hover:bg-gray-800 transition inline-block">
-                                Leer m·s
-                            </Link>
-                        </div>
+                                {/* --- BOT√ìN DIN√ÅMICO --- */}
+                                <Link
+                                    to={`/noticias/${noticia.id}`}
+                                    className="inline-block text-xs font-black uppercase tracking-widest border-b-2 border-black pb-1 hover:text-yellow-600 hover:border-yellow-600 transition"
+                                >
+                                    Leer Noticia ‚Üí
+                                </Link>
+                            </div>
+                        ))}
                     </div>
                 ) : (
-                    <div className="p-10 bg-gray-50 text-center border-2 border-dashed border-gray-300 rounded-xl">
-                        <p className="text-gray-500 font-bold">No hay noticias cargadas a˙n.</p>
+                    <div className="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                        <p className="text-gray-400 font-bold uppercase tracking-widest">No hay noticias cargadas a√∫n.</p>
                     </div>
                 )}
-            </div>
+            </section>
         </div>
     );
 };

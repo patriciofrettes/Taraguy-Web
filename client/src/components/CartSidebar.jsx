@@ -1,61 +1,77 @@
 ﻿import { useCart } from '../context/CartContext';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 
 const CartSidebar = () => {
-    // Traemos las funciones del contexto nuevo
     const { cart, removeFromCart, totalPrice, clearCart, isCartOpen, closeCart } = useCart();
 
-    // Lógica de MercadoPago (Simplificada para este ejemplo)
+    const getImagenUrl = (url) => {
+        if (!url) return "/img/default_product.png";
+        if (url.startsWith("http")) return url;
+        const baseUrl = api.defaults.baseURL.replace('/api', '');
+        return `${baseUrl}${url}`;
+    };
+
     const handleCheckout = async () => {
         try {
-            const response = await axios.post('https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/MercadoPago/crear_preferencia', {
+            const nuevaOrden = {
+                nombreCliente: "Cliente",
+                apellidoCliente: "Web",
+                dni: "0",
+                email: "test@test.com",
+                telefono: "0",
+                total: totalPrice,
+                detalles: cart.map(item => ({
+                    productoId: item.id,
+                    nombreProducto: item.nombre,
+                    talle: item.talle,
+                    cantidad: item.cantidad,
+                    precioUnitario: item.precio
+                }))
+            };
+
+            const responseOrden = await api.post('/Ordenes', nuevaOrden);
+            const ordenId = responseOrden.data.id;
+
+            const responsePago = await api.post('/MercadoPago/crear_preferencia', {
                 items: cart,
                 total: totalPrice,
-                datosCliente: { nombre: "Cliente", apellido: "Web", email: "test@test.com" }
+                external_reference: ordenId.toString()
             });
-            window.location.href = response.data.url;
+
+            window.location.href = responsePago.data.url;
         } catch (error) {
             console.error("Error en pago:", error);
-            alert("Hubo un error al procesar el pago.");
+            alert("Hubo un error al procesar la compra.");
         }
     };
 
     return (
         <>
-            {/* FONDO OSCURO (Overlay) - Cierra al hacer click afuera */}
             {isCartOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-[60] backdrop-blur-sm transition-opacity"
-                    onClick={closeCart}
-                ></div>
+                <div className="fixed inset-0 bg-black/50 z-[60] backdrop-blur-sm" onClick={closeCart}></div>
             )}
 
-            {/* PANEL LATERAL */}
-            <div className={`fixed top-0 right-0 h-full w-full md:w-[400px] bg-white shadow-2xl z-[70] transform transition-transform duration-300 ease-in-out ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-
-                {/* CABECERA */}
+            <div className={`fixed top-0 right-0 h-full w-full md:w-[400px] bg-white shadow-2xl z-[70] transform transition-transform duration-300 ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="p-6 bg-black text-white flex justify-between items-center">
                     <h2 className="text-xl font-black uppercase">Tu Carrito</h2>
-                    <button onClick={closeCart} className="text-gray-400 hover:text-white text-2xl font-bold">✕</button>
+                    <button onClick={closeCart} className="text-2xl">✕</button>
                 </div>
 
-                {/* LISTA DE PRODUCTOS */}
-                <div className="p-6 overflow-y-auto h-[calc(100%-200px)]">
+                <div className="p-6 overflow-y-auto h-[calc(100%-220px)]">
                     {cart.length === 0 ? (
-                        <p className="text-center text-gray-500 mt-10">El carrito está vacío 😔</p>
+                        <p className="text-center text-gray-500 mt-10 uppercase font-bold text-sm">El carrito está vacío</p>
                     ) : (
                         <div className="space-y-6">
                             {cart.map((item, index) => (
-                                <div key={`${item.id}-${item.talle}-${index}`} className="flex gap-4 border-b border-gray-100 pb-4">
-                                    <img src={item.imagenUrl ? `https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net/${item.imagenUrl}` : '/img/default.jpg'} className="w-16 h-16 object-cover rounded" alt="prod" />
+                                <div key={`${item.id}-${item.talle}-${index}`} className="flex gap-4 border-b pb-4">
+                                    <img src={getImagenUrl(item.imagenUrl)} className="w-16 h-16 object-cover rounded" alt="prod" />
                                     <div className="flex-1">
-                                        <h4 className="font-bold text-sm uppercase">{item.nombre}</h4>
-                                        {/* Mostramos el talle si existe */}
-                                        {item.talle && <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 font-bold">Talle: {item.talle}</span>}
+                                        <h4 className="font-bold text-xs uppercase">{item.nombre}</h4>
+                                        {item.talle && <span className="text-[10px] bg-gray-100 px-2 py-1 rounded font-bold">Talle: {item.talle}</span>}
                                         <div className="flex justify-between items-center mt-2">
-                                            <span className="text-gray-500 text-xs">{item.cantidad} x ${item.precio}</span>
-                                            <button onClick={() => removeFromCart(item.id, item.talle)} className="text-red-500 text-xs font-bold hover:underline">Eliminar</button>
+                                            <span className="text-gray-900 font-bold text-sm">${item.precio.toLocaleString()}</span>
+                                            <button onClick={() => removeFromCart(item.id, item.talle)} className="text-red-500 text-[10px] font-black uppercase">Eliminar</button>
                                         </div>
                                     </div>
                                 </div>
@@ -64,21 +80,15 @@ const CartSidebar = () => {
                     )}
                 </div>
 
-                {/* FOOTER (TOTAL Y BOTÓN) */}
-                <div className="absolute bottom-0 left-0 w-full bg-gray-50 p-6 border-t border-gray-200">
+                <div className="absolute bottom-0 left-0 w-full bg-white p-6 border-t shadow-inner">
                     <div className="flex justify-between items-center mb-4">
-                        <span className="text-lg font-bold">Total:</span>
-                        <span className="text-2xl font-black text-green-600">${totalPrice.toLocaleString()}</span>
+                        <span className="font-bold uppercase text-gray-400 text-sm">Total</span>
+                        <span className="text-2xl font-black">${totalPrice.toLocaleString()}</span>
                     </div>
                     {cart.length > 0 && (
-                        <div className="flex flex-col gap-3">
-                            <button onClick={handleCheckout} className="w-full bg-blue-500 text-white py-3 rounded font-bold uppercase hover:bg-blue-600 transition">
-                                Pagar con Mercado Pago
-                            </button>
-                            <button onClick={clearCart} className="w-full text-gray-400 text-xs hover:text-red-500 underline">
-                                Vaciar Carrito
-                            </button>
-                        </div>
+                        <button onClick={handleCheckout} className="w-full bg-blue-600 text-white py-4 rounded font-black uppercase hover:bg-blue-700 transition">
+                            Pagar con Mercado Pago
+                        </button>
                     )}
                 </div>
             </div>

@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom'; // <--- AGREGADO
 import axios from 'axios';
 
 // URL BASE
@@ -11,14 +12,8 @@ const Tienda = () => {
     useEffect(() => {
         const cargarProductos = async () => {
             try {
-                console.log("Intentando conectar a:", API_URL); // Log para debug
                 const response = await axios.get(`${API_URL}/api/Productos`);
-
-                console.log("Datos recibidos:", response.data); // Log para ver qué llega
-
-                // --- CAMBIO: NO FILTRAMOS NADA, MOSTRAMOS TODO ---
                 setProductos(response.data);
-
             } catch (error) {
                 console.error("Error cargando productos:", error);
             } finally {
@@ -28,6 +23,13 @@ const Tienda = () => {
         cargarProductos();
     }, []);
 
+    // Helper para las imágenes (Misma lógica que en ProductoDetalle)
+    const getImagenUrl = (url) => {
+        if (!url) return "/img/default_product.png";
+        if (url.startsWith("http")) return url;
+        return `${API_URL}${url}`;
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 py-10 px-4">
             <div className="max-w-7xl mx-auto">
@@ -36,39 +38,42 @@ const Tienda = () => {
                 </h1>
 
                 {cargando ? (
-                    <div className="text-center py-20 text-gray-500 font-bold">Cargando productos...</div>
+                    <div className="text-center py-20 text-gray-500 font-bold uppercase tracking-widest">Cargando productos...</div>
                 ) : productos.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
                         {productos.map((prod) => (
-                            <div key={prod.id} className="bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden group">
+                            <div key={prod.id} className="bg-white rounded-xl shadow hover:shadow-xl transition overflow-hidden group border border-gray-100">
                                 <div className="h-64 overflow-hidden relative bg-gray-200">
                                     <img
-                                        src={prod.imagenUrl ? `${API_URL}${prod.imagenUrl}` : '/img/default_product.png'}
+                                        src={getImagenUrl(prod.imagenUrl)}
                                         alt={prod.nombre}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                                        onError={(e) => e.target.src = "https://via.placeholder.com/300?text=Sin+Foto"}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition duration-700"
+                                        onError={(e) => e.target.src = "/img/default_product.png"}
                                     />
-                                    {/* Si el stock es 0, mostramos cartel */}
-                                    {prod.stock === 0 && (
-                                        <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
-                                            <span className="text-white font-bold border-2 border-white px-3 py-1 uppercase">Sin Stock</span>
+                                    {prod.stock <= 0 && (
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                            <span className="text-white font-bold border-2 border-white px-3 py-1 uppercase -rotate-12">Sin Stock</span>
                                         </div>
                                     )}
                                 </div>
-                                <div className="p-4">
-                                    <h3 className="font-bold text-lg uppercase mb-1">{prod.nombre}</h3>
-                                    <p className="text-gray-500 text-xs mb-2 line-clamp-2">{prod.descripcion}</p>
-                                    <p className="text-green-600 font-black text-xl">${prod.precio}</p>
-                                    <button className="w-full mt-4 bg-black text-white py-2 rounded font-bold uppercase text-sm hover:bg-gray-800 transition">
+                                <div className="p-5">
+                                    <h3 className="font-black text-lg uppercase mb-1 leading-tight h-12 overflow-hidden">{prod.nombre}</h3>
+                                    <p className="text-green-600 font-black text-2xl mb-4">${prod.precio.toLocaleString()}</p>
+
+                                    {/* --- BOTÓN CORREGIDO: Ahora es un Link real --- */}
+                                    <Link
+                                        to={`/producto/${prod.id}`}
+                                        className="block w-full text-center bg-black text-white py-3 rounded font-bold uppercase text-xs tracking-widest hover:bg-yellow-500 hover:text-black transition-all duration-300"
+                                    >
                                         Ver Detalle
-                                    </button>
+                                    </Link>
                                 </div>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-20 text-gray-500 font-bold border-2 border-dashed border-gray-300 rounded-xl">
-                        No hay productos disponibles (Array vacío).
+                    <div className="text-center py-20 text-gray-400 font-bold border-2 border-dashed border-gray-200 rounded-2xl uppercase tracking-widest">
+                        No hay productos disponibles actualmente.
                     </div>
                 )}
             </div>

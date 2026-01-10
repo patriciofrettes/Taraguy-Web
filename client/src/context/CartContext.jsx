@@ -5,7 +5,6 @@ const CartContext = createContext();
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
-    // 1. Lógica de Persistencia (Guardar en memoria)
     const [cart, setCart] = useState(() => {
         try {
             const guardado = localStorage.getItem('carrito');
@@ -15,7 +14,6 @@ export const CartProvider = ({ children }) => {
         }
     });
 
-    // 2. Estado para ABRIR/CERRAR el carrito (Esto faltaba)
     const [isCartOpen, setIsCartOpen] = useState(false);
 
     const openCart = () => setIsCartOpen(true);
@@ -25,34 +23,44 @@ export const CartProvider = ({ children }) => {
         localStorage.setItem('carrito', JSON.stringify(cart));
     }, [cart]);
 
-    // 3. Agregar con Talles
     const addToCart = (product, talleSeleccionado = null) => {
         setCart(prevCart => {
-            const existe = prevCart.find(item =>
+            // Buscamos si ya existe la combinación exacta de ID y TALLE
+            const existeIndex = prevCart.findIndex(item =>
                 item.id === product.id && item.talle === talleSeleccionado
             );
 
-            if (existe) {
-                return prevCart.map(item =>
-                    (item.id === product.id && item.talle === talleSeleccionado)
-                        ? { ...item, cantidad: item.cantidad + 1 }
-                        : item
-                );
+            if (existeIndex !== -1) {
+                // Si existe, aumentamos cantidad
+                const newCart = [...prevCart];
+                newCart[existeIndex] = {
+                    ...newCart[existeIndex],
+                    cantidad: newCart[existeIndex].cantidad + 1
+                };
+                return newCart;
             } else {
-                const nombreFinal = talleSeleccionado
-                    ? `${product.nombre} (${talleSeleccionado})`
-                    : product.nombre;
-
+                // Si es nuevo, lo agregamos manteniendo el nombre limpio
                 return [...prevCart, {
                     ...product,
-                    nombre: nombreFinal,
                     talle: talleSeleccionado,
                     cantidad: 1
                 }];
             }
         });
-        // Abrir el carrito automáticamente al comprar
         setIsCartOpen(true);
+    };
+
+    // Nueva función para bajar cantidad (útil para botones - y + en el carrito)
+    const updateQuantity = (id, talle, valor) => {
+        setCart(prevCart => {
+            return prevCart.map(item => {
+                if (item.id === id && item.talle === talle) {
+                    const nuevaCantidad = item.cantidad + valor;
+                    return nuevaCantidad > 0 ? { ...item, cantidad: nuevaCantidad } : item;
+                }
+                return item;
+            });
+        });
     };
 
     const removeFromCart = (id, talle) => {
@@ -69,12 +77,13 @@ export const CartProvider = ({ children }) => {
             cart,
             addToCart,
             removeFromCart,
+            updateQuantity, // <--- Nueva
             clearCart,
             totalItems,
             totalPrice,
-            isCartOpen,  // <--- Nuevo
-            openCart,    // <--- Nuevo
-            closeCart    // <--- Nuevo
+            isCartOpen,
+            openCart,
+            closeCart
         }}>
             {children}
         </CartContext.Provider>
