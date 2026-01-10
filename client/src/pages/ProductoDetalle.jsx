@@ -1,100 +1,87 @@
-﻿import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import api from '../api/axios';
+﻿import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { toast } from 'sonner';
+import api from '../api/axios';
 
 const ProductoDetalle = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
+    const { addToCart, openCart } = useCart();
     const [producto, setProducto] = useState(null);
     const [talleSeleccionado, setTalleSeleccionado] = useState(null);
-    const { addToCart } = useCart();
+    const [cargando, setCargando] = useState(true);
 
     useEffect(() => {
-        // Forzamos el scroll arriba al entrar al detalle
-        window.scrollTo(0, 0);
-
         api.get(`/Productos/${id}`)
-            .then(res => setProducto(res.data))
-            .catch(err => console.error(err));
+            .then(res => {
+                setProducto(res.data);
+                setCargando(false);
+            })
+            .catch(err => {
+                console.error("Error cargando producto", err);
+                setCargando(false);
+            });
     }, [id]);
 
-    if (!producto) return <div className="text-center py-20 font-bold">Cargando...</div>;
-
-    const talles = producto.talles
-        ? producto.talles.split(',').map(t => t.trim()).filter(t => t !== "")
-        : [];
-
-    const isSinStock = producto.stock <= 0;
-
     const handleAgregar = () => {
-        if (isSinStock) return; // Seguridad extra
-
-        if (talles.length > 0 && !talleSeleccionado) {
-            toast.error("⚠️ Por favor selecciona un talle");
+        // Si el producto tiene talles (ej. indumentaria) y no eligió uno, avisamos
+        if (producto.categoria === "Indumentaria" && !talleSeleccionado) {
+            alert("Por favor, selecciona un talle antes de agregar.");
             return;
         }
+
         addToCart(producto, talleSeleccionado);
-        toast.success("Producto agregado al carrito 🛒");
+        openCart(); // Abre el sidebar para que el usuario vea que se agregó
     };
 
-    const getImagenUrl = (url) => {
-        if (!url) return "/img/default_product.png";
-        if (url.startsWith("http")) return url;
-        const baseUrl = api.defaults.baseURL.replace('/api', '');
-        return `${baseUrl}${url}`;
-    };
+    if (cargando) return <div className="text-center py-20 font-black uppercase">Cargando...</div>;
+    if (!producto) return <div className="text-center py-20 uppercase font-black">Producto no encontrado</div>;
 
     return (
-        <div className="min-h-screen bg-white py-10 px-4">
+        <div className="min-h-screen bg-white py-12 px-6">
             <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div className="bg-gray-100 rounded-xl overflow-hidden shadow-sm flex items-center justify-center h-[500px] relative">
+                {/* Imagen */}
+                <div className="bg-gray-50 rounded-2xl overflow-hidden shadow-inner">
                     <img
-                        src={getImagenUrl(producto.imagenUrl)}
+                        src={producto.imagenUrl ? `https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net${producto.imagenUrl}` : '/img/default_product.png'}
+                        className="w-full h-full object-contain"
                         alt={producto.nombre}
-                        className={`w-full h-full object-cover ${isSinStock ? 'grayscale opacity-50' : ''}`}
                     />
-                    {isSinStock && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="bg-black text-white px-6 py-2 font-black uppercase text-2xl -rotate-12 border-4 border-white">Sin Stock</span>
-                        </div>
-                    )}
                 </div>
 
+                {/* Info */}
                 <div className="flex flex-col justify-center">
-                    <span className="text-gray-500 uppercase tracking-widest text-sm font-bold mb-2">{producto.categoriaProducto}</span>
-                    <h1 className="text-4xl font-black uppercase mb-4 leading-none">{producto.nombre}</h1>
-                    <p className="text-3xl font-bold text-gray-900 mb-6">${producto.precio.toLocaleString()}</p>
-                    <p className="text-gray-600 mb-8 leading-relaxed">{producto.descripcion}</p>
+                    <span className="text-gray-400 font-bold uppercase tracking-widest text-sm mb-2">{producto.categoria}</span>
+                    <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-none mb-4">{producto.nombre}</h1>
+                    <p className="text-3xl font-black text-gray-900 mb-6">${producto.precio.toLocaleString()}</p>
+                    <p className="text-gray-500 mb-8 leading-relaxed">{producto.descripcion}</p>
 
-                    {talles.length > 0 && !isSinStock && (
-                        <div className="mb-8">
-                            <p className="font-bold text-sm uppercase mb-3 text-black">Seleccioná tu talle:</p>
-                            <div className="grid grid-cols-4 gap-3">
-                                {talles.map(talle => (
-                                    <button
-                                        key={talle}
-                                        onClick={() => setTalleSeleccionado(talle)}
-                                        className={`py-3 text-sm font-bold border rounded transition-all uppercase
-                                            ${talleSeleccionado === talle ? 'border-black bg-black text-white' : 'border-gray-200 text-gray-700 hover:border-black'}`}
-                                    >
-                                        {talle}
-                                    </button>
-                                ))}
-                            </div>
+                    {/* Talles - Solo si es indumentaria */}
+                    <div className="mb-8">
+                        <p className="font-black uppercase text-xs tracking-widest mb-4">Seleccioná tu talle:</p>
+                        <div className="flex gap-3">
+                            {['S', 'M', 'L', 'XL'].map(talle => (
+                                <button
+                                    key={talle}
+                                    onClick={() => setTalleSeleccionado(talle)}
+                                    className={`w-14 h-14 border-2 font-black transition-all rounded-lg ${talleSeleccionado === talle ? 'border-black bg-black text-white' : 'border-gray-200 text-gray-400 hover:border-black'}`}
+                                >
+                                    {talle}
+                                </button>
+                            ))}
                         </div>
-                    )}
+                    </div>
 
                     <button
                         onClick={handleAgregar}
-                        disabled={isSinStock}
-                        className={`w-full py-4 rounded font-bold uppercase tracking-widest transition shadow-lg text-lg
-                            ${isSinStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                        className="w-full bg-blue-600 text-white py-5 rounded-xl font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-xl active:scale-95"
                     >
-                        {isSinStock ? 'PRODUCTO AGOTADO' : 'AGREGAR AL CARRITO'}
+                        Agregar al Carrito
                     </button>
 
-                    <Link to="/tienda" className="block text-center mt-6 text-sm font-bold underline hover:text-gray-600">Seguir Comprando</Link>
+                    <button onClick={() => navigate('/tienda')} className="mt-6 text-gray-400 font-bold uppercase text-[10px] tracking-widest hover:text-black">
+                        Seguir Comprando
+                    </button>
                 </div>
             </div>
         </div>
