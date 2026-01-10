@@ -1,13 +1,11 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using TaraguyAPI.Models;
+using TaraguyAPI.Services; // Namespace correcto según tu carpeta
 
 namespace TaraguyAPI.Controllers
 {
@@ -16,12 +14,13 @@ namespace TaraguyAPI.Controllers
     public class NoticiasController : ControllerBase
     {
         private readonly TaraguyDbContext _context;
-        private readonly IWebHostEnvironment _env;
+        private readonly ImagenService _imagenService; // 1. Servicio
 
-        public NoticiasController(TaraguyDbContext context, IWebHostEnvironment env)
+        // 2. Inyección
+        public NoticiasController(TaraguyDbContext context, ImagenService imagenService)
         {
             _context = context;
-            _env = env;
+            _imagenService = imagenService;
         }
 
         [HttpGet]
@@ -46,22 +45,11 @@ namespace TaraguyAPI.Controllers
                 if (string.IsNullOrEmpty(dto.Titulo)) return BadRequest("El título es obligatorio");
 
                 string rutaImagen = null;
+
+                // 3. Subida a Azure
                 if (dto.Imagen != null)
                 {
-                    // --- CORRECCIÓN DE RUTA ---
-                    string rootPath = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
-                    string folder = Path.Combine(rootPath, "img");
-
-                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-
-                    string nombreArchivo = Guid.NewGuid().ToString() + Path.GetExtension(dto.Imagen.FileName);
-                    string rutaCompleta = Path.Combine(folder, nombreArchivo);
-
-                    using (var stream = new FileStream(rutaCompleta, FileMode.Create))
-                    {
-                        await dto.Imagen.CopyToAsync(stream);
-                    }
-                    rutaImagen = "/img/" + nombreArchivo;
+                    rutaImagen = await _imagenService.SubirImagenAsync(dto.Imagen);
                 }
 
                 var noticia = new Noticia
@@ -70,7 +58,7 @@ namespace TaraguyAPI.Controllers
                     Copete = dto.Copete,
                     Cuerpo = dto.Cuerpo,
                     FechaPublicacion = DateTime.Now,
-                    // Autor eliminado para evitar error de BD
+                    // Si rutaImagen es null, usa la default local, sino la URL de Azure
                     ImagenUrl = rutaImagen ?? "/img/default_news.png"
                 };
 

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 const API_URL = "https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net";
 
 const Admin = () => {
+    // Agregamos 'sponsors' a la lista de tabs
     const [tabActiva, setTabActiva] = useState('tienda');
     const navigate = useNavigate();
 
@@ -24,14 +25,19 @@ const Admin = () => {
                     </button>
                 </div>
 
+                {/* MENÚ DE PESTAÑAS (Agregamos Sponsors) */}
                 <div className="flex flex-wrap gap-2 md:gap-4 mb-8 border-b border-gray-300 pb-4">
-                    {['tienda', 'noticias', 'partidos', 'ventas'].map((tab) => (
+                    {['tienda', 'noticias', 'partidos', 'sponsors', 'ventas'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setTabActiva(tab)}
                             className={`px-4 py-2 rounded font-bold uppercase text-sm transition ${tabActiva === tab ? 'bg-black text-white shadow-lg' : 'bg-white text-gray-500 hover:bg-gray-200'}`}
                         >
-                            {tab === 'tienda' ? '👕 Tienda' : tab === 'noticias' ? '📰 Noticias' : tab === 'partidos' ? '🏆 Partidos' : '💰 Ventas'}
+                            {tab === 'tienda' ? '👕 Tienda' :
+                                tab === 'noticias' ? '📰 Noticias' :
+                                    tab === 'partidos' ? '🏆 Partidos' :
+                                        tab === 'sponsors' ? '🤝 Sponsors' :
+                                            '💰 Ventas'}
                         </button>
                     ))}
                 </div>
@@ -40,6 +46,7 @@ const Admin = () => {
                     {tabActiva === 'tienda' && <PanelTienda />}
                     {tabActiva === 'noticias' && <PanelNoticias />}
                     {tabActiva === 'partidos' && <PanelPartidos />}
+                    {tabActiva === 'sponsors' && <PanelSponsors />} {/* NUEVO PANEL */}
                     {tabActiva === 'ventas' && <PanelVentas />}
                 </div>
             </div>
@@ -227,10 +234,9 @@ const PanelNoticias = () => {
     );
 };
 
-/* --- 3. PARTIDOS (AHORA CON SUBIDA DE ESCUDO 📸) --- */
+/* --- 3. PARTIDOS --- */
 const PanelPartidos = () => {
     const [partidos, setPartidos] = useState([]);
-    // Estado inicial incluyendo imagen
     const [form, setForm] = useState({
         rival: '', fecha: '', lugar: 'Local', resultado: '',
         disciplina: 'Rugby', categoria: 'Primera', imagen: null
@@ -243,7 +249,6 @@ const PanelPartidos = () => {
 
     useEffect(() => { cargar(); }, []);
 
-    // Manejador modificado para soportar archivos
     const handleChange = (e) => {
         const { name, value, files } = e.target;
         setForm({ ...form, [name]: files ? files[0] : value });
@@ -251,8 +256,6 @@ const PanelPartidos = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // Creamos FormData para poder enviar el archivo
         const formData = new FormData();
         formData.append('rival', form.rival);
         formData.append('fecha', form.fecha);
@@ -260,19 +263,14 @@ const PanelPartidos = () => {
         formData.append('disciplina', form.disciplina);
         formData.append('categoria', form.categoria);
         if (form.resultado) formData.append('resultado', form.resultado);
-        if (form.imagen) formData.append('imagen', form.imagen); // Adjuntamos foto si hay
+        if (form.imagen) formData.append('imagen', form.imagen);
 
         try {
-            // Importante: header multipart/form-data
             await axios.post(`${API_URL}/api/Partidos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             alert('Partido agendado');
-
-            // Limpiamos el form
             setForm({ rival: '', fecha: '', lugar: 'Local', resultado: '', disciplina: 'Rugby', categoria: 'Primera', imagen: null });
-            // Limpiamos el input file visualmente
             const fileInput = document.getElementById('fileInputPartido');
             if (fileInput) fileInput.value = "";
-
             cargar();
         } catch (error) {
             console.error(error);
@@ -329,16 +327,10 @@ const PanelPartidos = () => {
                     </select>
                 </div>
 
-                {/* CAMPO DE ARCHIVO (NUEVO) */}
+                {/* CAMPO DE ARCHIVO */}
                 <div>
                     <label className="text-xs font-bold uppercase block mb-1">Escudo Rival (Imagen)</label>
-                    <input
-                        id="fileInputPartido"
-                        type="file"
-                        name="imagen"
-                        onChange={handleChange}
-                        className="w-full bg-white border p-1 rounded text-sm"
-                    />
+                    <input id="fileInputPartido" type="file" name="imagen" onChange={handleChange} className="w-full bg-white border p-1 rounded text-sm" />
                 </div>
 
                 <button type="submit" className="col-span-1 md:col-span-3 bg-black text-white py-3 rounded font-bold uppercase hover:bg-gray-800 transition">Guardar Partido</button>
@@ -349,7 +341,6 @@ const PanelPartidos = () => {
                 {partidos.map(p => (
                     <li key={p.id} className="border p-4 rounded bg-white shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
                         <div className="flex-grow flex items-center gap-4">
-                            {/* Mostrar mini escudo si existe */}
                             {p.escudoRivalUrl ? (
                                 <img src={`${API_URL}${p.escudoRivalUrl}`} className="w-10 h-10 object-contain" alt="escudo" />
                             ) : (
@@ -381,7 +372,114 @@ const PanelPartidos = () => {
     );
 };
 
-/* --- 4. VENTAS --- */
+/* --- 4. NUEVO PANEL SPONSORS --- */
+const PanelSponsors = () => {
+    const [sponsors, setSponsors] = useState([]);
+    const [nombre, setNombre] = useState('');
+    const [linkWeb, setLinkWeb] = useState('');
+    const [imagen, setImagen] = useState(null);
+    const [subiendo, setSubiendo] = useState(false);
+
+    const cargarSponsors = () => {
+        axios.get(`${API_URL}/api/Sponsors`)
+            .then(res => setSponsors(res.data))
+            .catch(e => console.error("Error cargando sponsors"));
+    };
+
+    useEffect(() => { cargarSponsors(); }, []);
+
+    const handleSubir = async (e) => {
+        e.preventDefault();
+        if (!imagen) return alert("Selecciona un logo");
+
+        setSubiendo(true);
+        const formData = new FormData();
+        formData.append('Nombre', nombre);
+        formData.append('LinkWeb', linkWeb);
+        formData.append('Logo', imagen); // Debe coincidir con el backend
+
+        try {
+            await axios.post(`${API_URL}/api/Sponsors`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setNombre('');
+            setLinkWeb('');
+            setImagen(null);
+            document.getElementById('fileInputSponsor').value = "";
+            cargarSponsors();
+        } catch (error) {
+            console.error(error);
+            alert("Error al subir sponsor");
+        } finally {
+            setSubiendo(false);
+        }
+    };
+
+    const handleEliminar = async (id) => {
+        if (!confirm("¿Seguro querés borrar este sponsor?")) return;
+        try {
+            await axios.delete(`${API_URL}/api/Sponsors/${id}`);
+            cargarSponsors();
+        } catch (error) {
+            alert("Error al eliminar");
+        }
+    };
+
+    const getLogo = (ruta) => {
+        if (!ruta) return null;
+        if (ruta.startsWith("http")) return ruta;
+        return `${API_URL}${ruta}`;
+    };
+
+    return (
+        <div>
+            <h2 className="text-2xl font-black uppercase mb-6">🤝 Administrar Sponsors</h2>
+
+            {/* FORMULARIO */}
+            <form onSubmit={handleSubir} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 bg-gray-50 p-6 rounded-xl border border-dashed border-gray-300">
+                <div>
+                    <label className="text-xs font-bold uppercase block mb-1">Nombre</label>
+                    <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} className="w-full border p-2 rounded bg-white" placeholder="Ej: Adidas" />
+                </div>
+                <div>
+                    <label className="text-xs font-bold uppercase block mb-1">Link Web (Opcional)</label>
+                    <input type="text" value={linkWeb} onChange={e => setLinkWeb(e.target.value)} className="w-full border p-2 rounded bg-white" placeholder="https://..." />
+                </div>
+                <div>
+                    <label className="text-xs font-bold uppercase block mb-1">Logo</label>
+                    <input id="fileInputSponsor" type="file" onChange={e => setImagen(e.target.files[0])} className="w-full border p-1 rounded bg-white" accept="image/*" />
+                </div>
+                <button disabled={subiendo} className="md:col-span-3 bg-black text-white py-3 rounded font-bold uppercase hover:bg-gray-800">
+                    {subiendo ? "Subiendo..." : "Guardar Sponsor"}
+                </button>
+            </form>
+
+            {/* LISTADO */}
+            <h3 className="font-black uppercase text-lg mb-4">Sponsors Activos</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {sponsors.map(s => (
+                    <div key={s.id} className="bg-white border rounded-lg p-4 relative group hover:shadow-lg transition">
+                        <button
+                            onClick={() => handleEliminar(s.id)}
+                            className="absolute top-2 right-2 bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shadow hover:bg-red-700 z-10 opacity-0 group-hover:opacity-100 transition"
+                            title="Eliminar"
+                        >
+                            X
+                        </button>
+
+                        <div className="h-20 flex items-center justify-center mb-2">
+                            <img src={getLogo(s.logoUrl)} alt={s.nombre} className="max-h-full max-w-full object-contain" />
+                        </div>
+
+                        <p className="text-center font-bold text-sm truncate">{s.nombre}</p>
+                        {s.linkWeb && <p className="text-center text-xs text-blue-500 truncate">{s.linkWeb}</p>}
+                    </div>
+                ))}
+            </div>
+            {sponsors.length === 0 && <p className="text-gray-500">No hay sponsors cargados.</p>}
+        </div>
+    );
+};
+
+/* --- 5. VENTAS --- */
 const PanelVentas = () => {
     const [ordenes, setOrdenes] = useState([]);
     useEffect(() => {

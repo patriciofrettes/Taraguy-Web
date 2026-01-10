@@ -1,13 +1,11 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using TaraguyAPI.Models;
+using TaraguyAPI.Services; // Namespace correcto
 
 namespace TaraguyAPI.Controllers
 {
@@ -16,12 +14,12 @@ namespace TaraguyAPI.Controllers
     public class PartidosController : ControllerBase
     {
         private readonly TaraguyDbContext _context;
-        private readonly IWebHostEnvironment _env;
+        private readonly ImagenService _imagenService;
 
-        public PartidosController(TaraguyDbContext context, IWebHostEnvironment env)
+        public PartidosController(TaraguyDbContext context, ImagenService imagenService)
         {
             _context = context;
-            _env = env;
+            _imagenService = imagenService;
         }
 
         [HttpGet]
@@ -38,25 +36,10 @@ namespace TaraguyAPI.Controllers
                 if (string.IsNullOrEmpty(dto.Rival)) return BadRequest("Falta el rival");
 
                 string rutaImagen = null;
+                // Subida a Azure
                 if (dto.Imagen != null)
                 {
-                    // --- CORRECCIÓN DE RUTA ---
-                    // Si WebRootPath ya tiene valor (Azure), lo usamos. Si no, construimos la ruta.
-                    string rootPath = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
-
-                    // Ahora apuntamos directo a "img" (sin repetir wwwroot)
-                    string folder = Path.Combine(rootPath, "img");
-
-                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-
-                    string nombreArchivo = Guid.NewGuid().ToString() + Path.GetExtension(dto.Imagen.FileName);
-                    string rutaCompleta = Path.Combine(folder, nombreArchivo);
-
-                    using (var stream = new FileStream(rutaCompleta, FileMode.Create))
-                    {
-                        await dto.Imagen.CopyToAsync(stream);
-                    }
-                    rutaImagen = "/img/" + nombreArchivo;
+                    rutaImagen = await _imagenService.SubirImagenAsync(dto.Imagen);
                 }
 
                 var partido = new Partido
@@ -67,7 +50,7 @@ namespace TaraguyAPI.Controllers
                     Resultado = dto.Resultado,
                     Disciplina = dto.Disciplina ?? "Rugby",
                     Categoria = dto.Categoria ?? "Primera",
-                    EscudoRivalUrl = rutaImagen
+                    EscudoRivalUrl = rutaImagen // URL de Azure
                 };
 
                 _context.Partidos.Add(partido);
@@ -82,10 +65,24 @@ namespace TaraguyAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutPartido(int id, Partido partido)
+        public async Task<IActionResult> PutPartido(int id, [FromForm] PartidoDto dto)
         {
-            if (id != partido.Id) return BadRequest();
-            _context.Entry(partido).State = EntityState.Modified;
+            // Nota: He adaptado el PUT para recibir DTO y soportar cambio de imagen también
+            var partido = await _context.Partidos.FindAsync(id);
+            if (partido == null) return NotFound();
+
+            partido.Rival = dto.Rival;
+            partido.FechaHora = dto.Fecha;
+            partido.Lugar = dto.Lugar;
+            partido.Resultado = dto.Resultado;
+            partido.Disciplina = dto.Disciplina;
+            partido.Categoria = dto.Categoria;
+
+            if (dto.Imagen != null)
+            {
+                partido.EscudoRivalUrl = await _imagenService.SubirImagenAsync(dto.Imagen);
+            }
+
             await _context.SaveChangesAsync();
             return NoContent();
         }

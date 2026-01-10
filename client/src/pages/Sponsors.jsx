@@ -1,52 +1,84 @@
+﻿import { useState, useEffect } from 'react';
+import axios from 'axios';
+
+// URL BASE
+const API_URL = "https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net";
+
 const Sponsors = () => {
-    // Array de ejemplo. Luego puedes poner las im�genes reales en /public/img/sponsors/
-    const sponsors = [1, 2, 3, 4, 5, 6, 7, 8]; 
-  
+    const [sponsors, setSponsors] = useState([]);
+    const [cargando, setCargando] = useState(true);
+
+    useEffect(() => {
+        axios.get(`${API_URL}/api/Sponsors`)
+            .then(res => {
+                setSponsors(res.data);
+                setCargando(false);
+            })
+            .catch(e => {
+                console.error(e);
+                setCargando(false);
+            });
+    }, []);
+
+    // 🔧 FUNCIÓN PARA ARREGLAR URL DE IMÁGENES
+    const getLogo = (ruta) => {
+        if (!ruta) return null;
+        if (ruta.startsWith("http")) return ruta;
+        return `${API_URL}${ruta}`;
+    };
+
     return (
-      <div className="bg-white min-h-screen pb-20">
-        
-        {/* HERO */}
-        <div className="bg-black text-white py-20 text-center">
-            <h1 className="text-5xl font-black uppercase tracking-tighter mb-4">Nuestros Sponsors</h1>
-            <p className="text-gray-400 max-w-2xl mx-auto text-lg">
-                Empresas que comparten nuestros valores y hacen posible que el gigante siga creciendo.
-            </p>
-        </div>
-  
-        {/* MAIN SPONSORS (M�s grandes) */}
-        <div className="max-w-7xl mx-auto px-4 mt-16 text-center">
-            <h2 className="text-yellow-400 font-bold uppercase tracking-[0.3em] mb-8">Main Sponsors</h2>
-            <div className="flex flex-wrap justify-center gap-12 items-center">
-                {/* Logos Grandes */}
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1200px-Adidas_Logo.svg.png" className="h-24 grayscale hover:grayscale-0 transition duration-500 opacity-70 hover:opacity-100" alt="Adidas" />
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Sony_logo.svg/2560px-Sony_logo.svg.png" className="h-16 grayscale hover:grayscale-0 transition duration-500 opacity-70 hover:opacity-100" alt="Sony" />
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/H%26M-Logo.svg/2560px-H%26M-Logo.svg.png" className="h-16 grayscale hover:grayscale-0 transition duration-500 opacity-70 hover:opacity-100" alt="H&M" />
+        <div className="bg-white min-h-screen pb-20">
+
+            {/* HERO */}
+            <div className="bg-black text-white py-20 text-center px-4">
+                <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">Nuestros Sponsors</h1>
+                <p className="text-gray-400 max-w-2xl mx-auto text-lg">
+                    Empresas que comparten nuestros valores y hacen posible que el gigante siga creciendo.
+                </p>
             </div>
-        </div>
-  
-        <div className="w-full h-px bg-gray-200 my-16 max-w-4xl mx-auto"></div>
-  
-        {/* PARTNERS (Grilla general) */}
-        <div className="max-w-5xl mx-auto px-4">
-            <h2 className="text-center text-gray-400 font-bold uppercase tracking-widest mb-10 text-sm">Official Partners</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                {sponsors.map((s) => (
-                    <div key={s} className="bg-gray-50 h-32 flex items-center justify-center rounded-lg border border-gray-100 hover:shadow-md transition">
-                        <span className="text-gray-300 font-black text-2xl uppercase">LOGO {s}</span>
+
+            {/* LISTA DE SPONSORS */}
+            <div className="max-w-7xl mx-auto px-4 mt-16">
+
+                {cargando ? (
+                    <div className="text-center py-20 font-bold">Cargando sponsors...</div>
+                ) : sponsors.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-12 items-center">
+                        {sponsors.map((s) => (
+                            <a
+                                key={s.id}
+                                href={s.linkWeb || "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group flex flex-col items-center justify-center p-6 border border-gray-100 rounded-xl hover:shadow-xl transition duration-300 bg-white h-48"
+                            >
+                                <img
+                                    src={getLogo(s.logoUrl)}
+                                    className="max-h-24 max-w-full object-contain filter grayscale group-hover:grayscale-0 transition duration-500 opacity-70 group-hover:opacity-100 group-hover:scale-110"
+                                    alt={s.nombre}
+                                    onError={(e) => e.target.style.display = 'none'}
+                                />
+                                {/* Si querés mostrar el nombre abajo, descomentá esto: */}
+                                {/* <span className="mt-4 font-bold text-xs uppercase text-gray-300 group-hover:text-black">{s.nombre}</span> */}
+                            </a>
+                        ))}
                     </div>
-                ))}
+                ) : (
+                    <p className="text-center text-gray-400">No hay sponsors cargados actualmente.</p>
+                )}
+
+            </div>
+
+            {/* CALL TO ACTION */}
+            <div className="mt-20 bg-gray-900 text-white py-12 text-center mx-4 rounded-xl">
+                <h3 className="text-2xl font-bold uppercase mb-4">¿Querés ser parte del gigante?</h3>
+                <button className="bg-white text-black px-8 py-3 font-black uppercase rounded hover:bg-yellow-400 transition">
+                    Contactar Marketing
+                </button>
             </div>
         </div>
-  
-        {/* CALL TO ACTION */}
-        <div className="mt-20 bg-gray-900 text-white py-12 text-center">
-            <h3 className="text-2xl font-bold uppercase mb-4">�Quer�s ser parte del gigante?</h3>
-            <button className="bg-white text-black px-8 py-3 font-black uppercase rounded hover:bg-yellow-400 transition">
-                Contactar Marketing
-            </button>
-        </div>
-      </div>
     );
-  };
-  
-  export default Sponsors;
+};
+
+export default Sponsors;

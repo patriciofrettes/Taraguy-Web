@@ -26,6 +26,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// -----------------------------------------------------------------------------
+// ☁️ INYECCIÓN DE SERVICIOS (Azure Storage) ☁️
+// -----------------------------------------------------------------------------
+// Esta es la línea que conecta tu código con la clase ImagenService
+builder.Services.AddScoped<TaraguyAPI.Services.ImagenService>();
+// (Si te da error en "Servicios", cambialo por "Services" para coincidir con tu carpeta)
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -37,7 +44,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // -----------------------------------------------------------------------------
-// 📷 CONFIGURACIÓN DE IMÁGENES (CORREGIDA) 📷
+// 📷 CONFIGURACIÓN DE IMÁGENES LOCALES (Respaldo) 📷
 // -----------------------------------------------------------------------------
 
 // 1. Obtener la ruta REAL de wwwroot que usa Azure
@@ -50,7 +57,7 @@ if (!Directory.Exists(imgPath))
     Directory.CreateDirectory(imgPath);
 }
 
-// 3. Habilitar archivos estáticos (esto usa webRootPath automáticamente)
+// 3. Habilitar archivos estáticos
 app.UseStaticFiles();
 
 // -----------------------------------------------------------------------------

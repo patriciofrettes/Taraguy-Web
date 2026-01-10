@@ -1,13 +1,11 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using TaraguyAPI.Models;
+using TaraguyAPI.Services; // Namespace correcto
 
 namespace TaraguyAPI.Controllers
 {
@@ -16,22 +14,20 @@ namespace TaraguyAPI.Controllers
     public class ProductosController : ControllerBase
     {
         private readonly TaraguyDbContext _context;
-        private readonly IWebHostEnvironment _env;
+        private readonly ImagenService _imagenService;
 
-        public ProductosController(TaraguyDbContext context, IWebHostEnvironment env)
+        public ProductosController(TaraguyDbContext context, ImagenService imagenService)
         {
             _context = context;
-            _env = env;
+            _imagenService = imagenService;
         }
 
-        // GET: api/Productos
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Producto>>> GetProductos()
         {
             return await _context.Productos.ToListAsync();
         }
 
-        // GET: api/Productos/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Producto>> GetProducto(int id)
         {
@@ -40,37 +36,21 @@ namespace TaraguyAPI.Controllers
             return producto;
         }
 
-        // POST: api/Productos (CREAR)
         [HttpPost]
         public async Task<ActionResult<Producto>> PostProducto([FromForm] ProductoDto dto)
         {
             try
             {
-                // Validaciones básicas
                 if (string.IsNullOrWhiteSpace(dto.Nombre)) return BadRequest("El nombre es obligatorio.");
                 if (dto.Precio <= 0) return BadRequest("El precio debe ser mayor a 0.");
 
                 string rutaImagen = null;
+                // Subida a Azure
                 if (dto.Imagen != null)
                 {
-                    // --- CORRECCIÓN DE RUTA ---
-                    string rootPath = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
-                    string folder = Path.Combine(rootPath, "img");
-
-                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-
-                    string nombreArchivo = Guid.NewGuid().ToString() + Path.GetExtension(dto.Imagen.FileName);
-                    string rutaCompleta = Path.Combine(folder, nombreArchivo);
-
-                    using (var stream = new FileStream(rutaCompleta, FileMode.Create))
-                    {
-                        await dto.Imagen.CopyToAsync(stream);
-                    }
-
-                    rutaImagen = "/img/" + nombreArchivo;
+                    rutaImagen = await _imagenService.SubirImagenAsync(dto.Imagen);
                 }
 
-                // 2. Crear el objeto
                 var nuevoProducto = new Producto
                 {
                     Nombre = dto.Nombre,
@@ -90,16 +70,10 @@ namespace TaraguyAPI.Controllers
             }
             catch (Exception ex)
             {
-                var mensajeError = "Error interno: " + ex.Message;
-                if (ex.InnerException != null)
-                {
-                    mensajeError += " | Detalle: " + ex.InnerException.Message;
-                }
-                return StatusCode(500, mensajeError);
+                return StatusCode(500, "Error: " + ex.Message);
             }
         }
 
-        // PUT: api/Productos/5 (EDITAR)
         [HttpPut("{id}")]
         public async Task<IActionResult> PutProducto(int id, [FromForm] ProductoDto dto)
         {
@@ -116,23 +90,10 @@ namespace TaraguyAPI.Controllers
                 productoExistente.Activo = dto.Activo;
                 productoExistente.Talles = dto.Talles;
 
+                // Subida a Azure al editar
                 if (dto.Imagen != null)
                 {
-                    // --- CORRECCIÓN DE RUTA EN PUT ---
-                    string rootPath = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
-                    string folder = Path.Combine(rootPath, "img");
-
-                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-
-                    string nombreArchivo = Guid.NewGuid().ToString() + Path.GetExtension(dto.Imagen.FileName);
-                    string rutaCompleta = Path.Combine(folder, nombreArchivo);
-
-                    using (var stream = new FileStream(rutaCompleta, FileMode.Create))
-                    {
-                        await dto.Imagen.CopyToAsync(stream);
-                    }
-
-                    productoExistente.ImagenUrl = "/img/" + nombreArchivo;
+                    productoExistente.ImagenUrl = await _imagenService.SubirImagenAsync(dto.Imagen);
                 }
 
                 _context.Entry(productoExistente).State = EntityState.Modified;
@@ -146,7 +107,6 @@ namespace TaraguyAPI.Controllers
             }
         }
 
-        // DELETE: api/Productos/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProducto(int id)
         {
