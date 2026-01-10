@@ -20,14 +20,12 @@ const Noticias = () => {
             });
     }, []);
 
-    // 🔧 FUNCIÓN PARA ARREGLAR IMÁGENES 🔧
-    const obtenerImagen = (ruta) => {
-        if (!ruta) return "/img/default_news.png"; // Imagen por defecto si no hay nada
+    // 🔧 FUNCIÓN SIMPLE (Igual a la Tienda)
+    const getImagen = (ruta) => {
+        if (!ruta) return "/img/default_news.png";
         if (ruta.startsWith("http")) return ruta;
-        if (ruta.startsWith("/img") || ruta.startsWith("/uploads")) {
-            return `${API_URL}${ruta}`;
-        }
-        return ruta;
+        // Simplemente pegamos la URL del backend, sin preguntar tanto
+        return `${API_URL}${ruta}`;
     };
 
     if (cargando) return <div className="text-center py-20 font-bold text-xl">Cargando noticias...</div>;
@@ -41,10 +39,9 @@ const Noticias = () => {
                     {noticias.map(n => (
                         <div key={n.id} className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col hover:shadow-2xl transition duration-300">
 
-                            {/* IMAGEN DE NOTICIA */}
                             <div className="h-56 overflow-hidden bg-gray-200">
                                 <img
-                                    src={obtenerImagen(n.imagenUrl)}
+                                    src={getImagen(n.imagenUrl)}
                                     alt={n.titulo}
                                     className="w-full h-full object-cover hover:scale-105 transition duration-500"
                                     onError={(e) => e.target.src = "https://via.placeholder.com/400?text=Sin+Imagen"}
