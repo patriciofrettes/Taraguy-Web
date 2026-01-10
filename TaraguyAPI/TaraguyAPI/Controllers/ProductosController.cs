@@ -50,22 +50,15 @@ namespace TaraguyAPI.Controllers
                 if (string.IsNullOrWhiteSpace(dto.Nombre)) return BadRequest("El nombre es obligatorio.");
                 if (dto.Precio <= 0) return BadRequest("El precio debe ser mayor a 0.");
 
-                // 1. Manejo de la Imagen (MODIFICADO PARA USAR CARPETA 'img' 📸)
                 string rutaImagen = null;
                 if (dto.Imagen != null)
                 {
-                    string webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
+                    // --- CORRECCIÓN DE RUTA ---
+                    string rootPath = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+                    string folder = Path.Combine(rootPath, "img");
 
-                    // CAMBIO AQUÍ: Usamos "img" en lugar de "uploads"
-                    string folder = Path.Combine(webRootPath, "wwwroot", "img");
+                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-                    // Si no existe la carpeta, la creamos
-                    if (!Directory.Exists(folder))
-                    {
-                        Directory.CreateDirectory(folder);
-                    }
-
-                    // Nombre único
                     string nombreArchivo = Guid.NewGuid().ToString() + Path.GetExtension(dto.Imagen.FileName);
                     string rutaCompleta = Path.Combine(folder, nombreArchivo);
 
@@ -74,7 +67,6 @@ namespace TaraguyAPI.Controllers
                         await dto.Imagen.CopyToAsync(stream);
                     }
 
-                    // CAMBIO AQUÍ: La URL empieza con /img/
                     rutaImagen = "/img/" + nombreArchivo;
                 }
 
@@ -88,7 +80,6 @@ namespace TaraguyAPI.Controllers
                     CategoriaProducto = dto.CategoriaProducto,
                     Activo = dto.Activo,
                     Talles = dto.Talles,
-                    // Si no hay foto, usa una por defecto de la carpeta img
                     ImagenUrl = rutaImagen ?? "/img/default_product.png"
                 };
 
@@ -108,7 +99,7 @@ namespace TaraguyAPI.Controllers
             }
         }
 
-        // PUT: api/Productos/5 (EDITAR) - AGREGADO PARA QUE FUNCIONE EL ADMIN
+        // PUT: api/Productos/5 (EDITAR)
         [HttpPut("{id}")]
         public async Task<IActionResult> PutProducto(int id, [FromForm] ProductoDto dto)
         {
@@ -117,7 +108,6 @@ namespace TaraguyAPI.Controllers
 
             try
             {
-                // Actualizamos datos básicos
                 productoExistente.Nombre = dto.Nombre;
                 productoExistente.Descripcion = dto.Descripcion;
                 productoExistente.Precio = dto.Precio;
@@ -126,11 +116,11 @@ namespace TaraguyAPI.Controllers
                 productoExistente.Activo = dto.Activo;
                 productoExistente.Talles = dto.Talles;
 
-                // Si viene una imagen NUEVA, la guardamos en la carpeta 'img'
                 if (dto.Imagen != null)
                 {
-                    string webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
-                    string folder = Path.Combine(webRootPath, "wwwroot", "img");
+                    // --- CORRECCIÓN DE RUTA EN PUT ---
+                    string rootPath = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+                    string folder = Path.Combine(rootPath, "img");
 
                     if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 

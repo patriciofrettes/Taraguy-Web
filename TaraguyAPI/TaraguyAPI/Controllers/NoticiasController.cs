@@ -48,9 +48,9 @@ namespace TaraguyAPI.Controllers
                 string rutaImagen = null;
                 if (dto.Imagen != null)
                 {
-                    string webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
-                    // Guardamos en la carpeta 'img'
-                    string folder = Path.Combine(webRootPath, "wwwroot", "img");
+                    // --- CORRECCIÓN DE RUTA ---
+                    string rootPath = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+                    string folder = Path.Combine(rootPath, "img");
 
                     if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
@@ -70,7 +70,7 @@ namespace TaraguyAPI.Controllers
                     Copete = dto.Copete,
                     Cuerpo = dto.Cuerpo,
                     FechaPublicacion = DateTime.Now,
-                    // Autor = "Administrador",  <-- ESTA LINEA LA BORRAMOS PORQUE TU BD NO LA TIENE
+                    // Autor eliminado para evitar error de BD
                     ImagenUrl = rutaImagen ?? "/img/default_news.png"
                 };
 

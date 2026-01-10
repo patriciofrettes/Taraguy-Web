@@ -40,9 +40,12 @@ namespace TaraguyAPI.Controllers
                 string rutaImagen = null;
                 if (dto.Imagen != null)
                 {
-                    string webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
-                    // Guardamos en 'img' para que sea igual que productos
-                    string folder = Path.Combine(webRootPath, "wwwroot", "img");
+                    // --- CORRECCIÓN DE RUTA ---
+                    // Si WebRootPath ya tiene valor (Azure), lo usamos. Si no, construimos la ruta.
+                    string rootPath = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+
+                    // Ahora apuntamos directo a "img" (sin repetir wwwroot)
+                    string folder = Path.Combine(rootPath, "img");
 
                     if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
