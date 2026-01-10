@@ -24,12 +24,6 @@ namespace TaraguyAPI.Controllers
             _env = env;
         }
 
-        [HttpGet("ultimas")]
-        public async Task<ActionResult<IEnumerable<Noticia>>> GetUltimas()
-        {
-            return await _context.Noticias.OrderByDescending(n => n.FechaPublicacion).Take(3).ToListAsync();
-        }
-
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Noticia>>> GetNoticias()
         {
@@ -44,17 +38,20 @@ namespace TaraguyAPI.Controllers
             return noticia;
         }
 
-        // POST: api/Noticias (SIN AUTOR PARA EVITAR ERROR)
         [HttpPost]
         public async Task<ActionResult<Noticia>> PostNoticia([FromForm] NoticiaDto dto)
         {
             try
             {
+                if (string.IsNullOrEmpty(dto.Titulo)) return BadRequest("El título es obligatorio");
+
                 string rutaImagen = null;
                 if (dto.Imagen != null)
                 {
                     string webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
-                    string folder = Path.Combine(webRootPath, "wwwroot", "uploads");
+                    // Guardamos en la carpeta 'img'
+                    string folder = Path.Combine(webRootPath, "wwwroot", "img");
+
                     if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
                     string nombreArchivo = Guid.NewGuid().ToString() + Path.GetExtension(dto.Imagen.FileName);
@@ -64,7 +61,7 @@ namespace TaraguyAPI.Controllers
                     {
                         await dto.Imagen.CopyToAsync(stream);
                     }
-                    rutaImagen = "/uploads/" + nombreArchivo;
+                    rutaImagen = "/img/" + nombreArchivo;
                 }
 
                 var noticia = new Noticia
@@ -72,8 +69,8 @@ namespace TaraguyAPI.Controllers
                     Titulo = dto.Titulo,
                     Copete = dto.Copete,
                     Cuerpo = dto.Cuerpo,
-                    // Autor = dto.Autor,  <-- COMENTADO PORQUE NO EXISTE EN TU BASE DE DATOS
-                    FechaPublicacion = DateTime.UtcNow,
+                    FechaPublicacion = DateTime.Now,
+                    // Autor = "Administrador",  <-- ESTA LINEA LA BORRAMOS PORQUE TU BD NO LA TIENE
                     ImagenUrl = rutaImagen ?? "/img/default_news.png"
                 };
 
@@ -84,7 +81,7 @@ namespace TaraguyAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Error interno: " + ex.Message);
+                return StatusCode(500, "Error: " + ex.Message);
             }
         }
 
@@ -104,7 +101,6 @@ namespace TaraguyAPI.Controllers
         public string Titulo { get; set; }
         public string Copete { get; set; }
         public string Cuerpo { get; set; }
-        // public string Autor { get; set; } <-- QUITAMOS ESTO
         public IFormFile? Imagen { get; set; }
     }
 }
