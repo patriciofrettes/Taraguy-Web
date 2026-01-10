@@ -14,7 +14,6 @@ const Navbar = () => {
 
     return (
         <nav className="bg-black text-white border-b border-gray-900 sticky top-0 z-50 shadow-2xl">
-            {/* CAMBIO CLAVE AQUÍ: Usamos 'w-full' y aumentamos el padding lateral (px-6 md:px-10) */}
             <div className="w-full px-6 md:px-10">
                 <div className="flex justify-between items-center h-24">
 
@@ -35,12 +34,13 @@ const Navbar = () => {
                         </div>
                     </Link>
 
-                    {/* CENTRO: NAVEGACIÓN (Se mantiene centrada respecto al espacio disponible) */}
+                    {/* CENTRO: NAVEGACIÓN */}
                     <div className="hidden lg:flex items-center gap-10 xl:gap-14">
                         <Link to="/" className={linkStyle('/')}>Inicio</Link>
                         <Link to="/historia" className={linkStyle('/historia')}>Historia</Link>
                         <Link to="/noticias" className={linkStyle('/noticias')}>Noticias</Link>
                         <Link to="/partidos" className={linkStyle('/partidos')}>Partidos</Link>
+                        <Link to="/sponsors" className={linkStyle('/sponsors')}>Sponsors</Link> {/* 👈 ¡AGREGADO AQUÍ! */}
                         <Link to="/tienda" className={linkStyle('/tienda')}>Tienda</Link>
                     </div>
 
@@ -88,6 +88,7 @@ const Navbar = () => {
                     <Link to="/" onClick={() => setIsOpen(false)} className="text-white font-bold uppercase tracking-widest">Inicio</Link>
                     <Link to="/tienda" onClick={() => setIsOpen(false)} className="text-white font-bold uppercase tracking-widest">Tienda</Link>
                     <Link to="/partidos" onClick={() => setIsOpen(false)} className="text-white font-bold uppercase tracking-widest">Partidos</Link>
+                    <Link to="/sponsors" onClick={() => setIsOpen(false)} className="text-white font-bold uppercase tracking-widest">Sponsors</Link> {/* 👈 ¡AGREGADO AQUÍ! */}
                     <Link to="/noticias" onClick={() => setIsOpen(false)} className="text-white font-bold uppercase tracking-widest">Noticias</Link>
                     <Link to="/asociate" onClick={() => setIsOpen(false)} className="bg-white text-black px-8 py-3 rounded font-black uppercase text-xs w-full text-center mt-4">¡Asociate!</Link>
                 </div>
