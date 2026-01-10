@@ -2,12 +2,16 @@
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 
+// URL BASE (Sin duplicar https)
+const API_URL = "https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net";
+
 const NoticiaDetalle = () => {
     const { id } = useParams();
     const [noticia, setNoticia] = useState(null);
 
     useEffect(() => {
-        axios.get(`https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net//api/Noticias/${id}`)
+        // CORRECCIÓN: Usamos la constante API_URL para evitar errores de tipeo
+        axios.get(`${API_URL}/api/Noticias/${id}`)
             .then((response) => {
                 setNoticia(response.data);
             })
@@ -16,30 +20,33 @@ const NoticiaDetalle = () => {
             });
     }, [id]);
 
-    // 🔧 LA FUNCIÓN QUE FALTABA
+    // 🔧 FUNCIÓN CORREGIDA Y ACTUALIZADA
     const obtenerImagen = (ruta) => {
-        if (!ruta) return "/img/default.jpg";
+        if (!ruta) return "/img/default_news.png"; // Imagen local por defecto si es null
 
-        // Si la imagen viene del servidor (subida), le agregamos el dominio del Backend
-        if (ruta.startsWith("/uploads")) {
-            return `https://https://taraguyrugbyclub-hhgkcrevcgerf7bg.centralus-01.azurewebsites.net/${ruta}`;
+        // Si ya es un link completo de internet
+        if (ruta.startsWith("http")) return ruta;
+
+        // Si viene del servidor (ya sea carpeta vieja /uploads o nueva /img)
+        if (ruta.startsWith("/uploads") || ruta.startsWith("/img")) {
+            return `${API_URL}${ruta}`;
         }
+
         return ruta;
     };
 
-    if (!noticia) return <div className="text-center mt-20">Cargando noticia...</div>;
+    if (!noticia) return <div className="text-center mt-20 font-bold text-xl">Cargando noticia...</div>;
 
     return (
         <div className="min-h-screen bg-white pb-20">
 
             {/* 1. IMAGEN GIGANTE DE PORTADA */}
             <div className="w-full h-96 overflow-hidden relative bg-black">
-                {/* APLICAMOS LA FUNCIÓN AQUÍ 👇 */}
                 <img
                     src={obtenerImagen(noticia.imagenUrl)}
                     alt={noticia.titulo}
                     className="w-full h-full object-cover opacity-80"
-                    onError={(e) => { e.target.src = "/img/default.jpg"; }}
+                    onError={(e) => { e.target.style.display = 'none'; }} // Si falla, ocultamos para que no se vea roto
                 />
                 <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-10">
                     <div className="max-w-7xl mx-auto">
@@ -56,7 +63,8 @@ const NoticiaDetalle = () => {
             {/* 2. CONTENIDO COMPLETO */}
             <div className="max-w-4xl mx-auto px-6 py-12">
                 <div className="flex items-center text-gray-500 text-sm font-bold uppercase tracking-widest mb-8 border-b pb-4">
-                    <span>Por {noticia.autor || "Admin"}</span>
+                    {/* Quitamos 'autor' porque la BD no lo tiene, ponemos Admin fijo */}
+                    <span>Por Admin</span>
                     <span className="mx-2">•</span>
                     <span>{new Date(noticia.fechaPublicacion).toLocaleDateString()}</span>
                 </div>
