@@ -40,8 +40,11 @@ const Navbar = () => {
                         <Link to="/historia" className={linkStyle('/historia')}>Historia</Link>
                         <Link to="/noticias" className={linkStyle('/noticias')}>Noticias</Link>
                         <Link to="/partidos" className={linkStyle('/partidos')}>Partidos</Link>
-                        <Link to="/sponsors" className={linkStyle('/sponsors')}>Sponsors</Link> {/* 👈 ¡AGREGADO AQUÍ! */}
+                        <Link to="/sponsors" className={linkStyle('/sponsors')}>Sponsors</Link>
+
+                        {/* --- ENLACE TIENDA OCULTO TEMPORALMENTE ---
                         <Link to="/tienda" className={linkStyle('/tienda')}>Tienda</Link>
+                        */}
                     </div>
 
                     {/* DERECHA: ACCIONES */}
@@ -56,7 +59,7 @@ const Navbar = () => {
 
                         <div className="hidden md:block h-8 w-px bg-gray-800"></div>
 
-                        {/* CARRITO */}
+                        {/* --- CARRITO OCULTO TEMPORALMENTE --- 
                         <button onClick={openCart} className="relative group p-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 group-hover:text-white transition duration-300">
                                 <circle cx="9" cy="21" r="1"></circle>
@@ -69,6 +72,7 @@ const Navbar = () => {
                                 </span>
                             )}
                         </button>
+                        */}
 
                         {/* HAMBURGUESA MÓVIL */}
                         <div className="flex lg:hidden">
@@ -86,9 +90,9 @@ const Navbar = () => {
             <div className={`lg:hidden bg-zinc-900 transition-all duration-300 overflow-hidden ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="px-4 py-6 space-y-4 flex flex-col items-center">
                     <Link to="/" onClick={() => setIsOpen(false)} className="text-white font-bold uppercase tracking-widest">Inicio</Link>
-                    <Link to="/tienda" onClick={() => setIsOpen(false)} className="text-white font-bold uppercase tracking-widest">Tienda</Link>
+                    {/* <Link to="/tienda" onClick={() => setIsOpen(false)} className="text-white font-bold uppercase tracking-widest">Tienda</Link> */}
                     <Link to="/partidos" onClick={() => setIsOpen(false)} className="text-white font-bold uppercase tracking-widest">Partidos</Link>
-                    <Link to="/sponsors" onClick={() => setIsOpen(false)} className="text-white font-bold uppercase tracking-widest">Sponsors</Link> {/* 👈 ¡AGREGADO AQUÍ! */}
+                    <Link to="/sponsors" onClick={() => setIsOpen(false)} className="text-white font-bold uppercase tracking-widest">Sponsors</Link>
                     <Link to="/noticias" onClick={() => setIsOpen(false)} className="text-white font-bold uppercase tracking-widest">Noticias</Link>
                     <Link to="/asociate" onClick={() => setIsOpen(false)} className="bg-white text-black px-8 py-3 rounded font-black uppercase text-xs w-full text-center mt-4">¡Asociate!</Link>
                 </div>

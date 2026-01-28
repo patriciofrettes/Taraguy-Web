@@ -8,7 +8,7 @@ import { CartProvider } from './context/CartContext';
 // PÁGINAS
 import Home from './pages/Home';
 import Noticias from './pages/Noticias';
-import NoticiaDetalle from './pages/NoticiaDetalle'; // <--- 1. ¡IMPORTANTE! Agregamos esto
+import NoticiaDetalle from './pages/NoticiaDetalle';
 import Partidos from './pages/Partidos';
 import Tienda from './pages/Tienda';
 import Historia from './pages/Historia';
@@ -33,7 +33,9 @@ const Layout = () => {
     return (
         <div className="flex flex-col min-h-screen relative bg-gray-50">
 
+            {/* --- CARRITO SUSPENDIDO TEMPORALMENTE ---
             {!esLogin && <CartSidebar />}
+            */}
 
             {/* Header solo en Home */}
             {esHome && <Header />}
@@ -48,15 +50,18 @@ const Layout = () => {
 
                     {/* RUTAS DE NOTICIAS */}
                     <Route path="/noticias" element={<Noticias />} />
-                    <Route path="/noticias/:id" element={<NoticiaDetalle />} /> {/* <--- 2. ¡ESTA ES LA RUTA MÁGICA QUE FALTABA! */}
+                    <Route path="/noticias/:id" element={<NoticiaDetalle />} />
 
                     <Route path="/partidos" element={<Partidos />} />
+
+                    {/* Rutas de Tienda (Se mantienen activas por si decidís volver, pero no hay link visible) */}
                     <Route path="/tienda" element={<Tienda />} />
+                    <Route path="/pago-exitoso" element={<PagoExitoso />} />
+                    <Route path="/producto/:id" element={<ProductoDetalle />} />
+
                     <Route path="/sponsors" element={<Sponsors />} />
                     <Route path="/beneficios" element={<Beneficios />} />
                     <Route path="/asociate" element={<Asociate />} />
-                    <Route path="/pago-exitoso" element={<PagoExitoso />} />
-                    <Route path="/producto/:id" element={<ProductoDetalle />} />
 
                     {/* RUTA DE LOGIN */}
                     <Route path="/login" element={<Login />} />
